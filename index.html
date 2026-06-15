@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Dashboard de Auditoria de Inventário — Rede de Farmácias">
+<title>Auditoria · Rede de Farmácias</title><script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet"><style>
+/* ═══ RESET & ROOT ═══════════════════════════════════════════════════ */
+:root {
+  --navy:   #0F2040;
+  --navy2:  #1A3260;
+  --navy3:  #243A5E;
+  --teal:   #00B8AF;
+  --teal2:  #00D4CA;
+  --red:    #DC3545;
+  --amber:  #F59E0B;
+  --green:  #10B981;
+  --purple: #7C3AED;
+  --gray:   #64748B;
+  --bg:     #EFF3FB;
+  --card:   #FFFFFF;
+  --bdr:    #D8E2EF;
+  --txt:    #0F2040;
+  --txt2:   #475569;
+  --txt3:   #94A3B8;
+  --font:   'Inter', sans-serif;
+  --fontT:  'Inter Tight', sans-serif;
+  --r:      8px;
+  --sh:     0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);
+  --sh2:    0 4px 20px rgba(0,0,0,.12);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 13px; }
+body { font-family: var(--font); background: var(--bg); color: var(--txt); min-height: 100vh; }
+
+/* ═══ TOPBAR ════════════════════════════════════════════════════════ */
+.topbar {
+  background: var(--navy);
+  height: 56px; padding: 0 24px;
+  display: flex; align-items: center; gap: 0;
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 2px 16px rgba(0,0,0,.4);
+}
+.tb-accent { width: 3px; height: 32px; background: var(--teal); border-radius: 2px; margin-right: 14px; flex-shrink: 0; }
+.tb-brand { font-family: var(--fontT); font-size: 15px; font-weight: 700; color: #fff; letter-spacing: .2px; flex: 1; }
+.tb-brand em { color: var(--teal2); font-style: normal; }
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(0,212,202,.12); border: 1px solid rgba(0,212,202,.35);
+  border-radius: 20px; padding: 4px 12px 4px 8px;
+  font-size: 11px; font-weight: 600; color: var(--teal2);
+  margin-right: 14px;
+}
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal2); animation: blink 1.5s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.4)} }
+.tabs { display: flex; gap: 2px; }
+.tab {
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  padding: 7px 16px; border-radius: 6px 6px 0 0;
+  border: none; background: transparent;
+  color: rgba(255,255,255,.5); cursor: pointer; transition: all .18s;
+}
+.tab:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.85); }
+.tab.active { background: var(--bg); color: var(--navy2); position: relative; }
+.tab.active::after { content:''; position:absolute; bottom:-1px; left:10px; right:10px; height:2px; background:var(--teal); border-radius:2px; }
+
+/* MONTH SWITCHER */
+.month-sw { display: flex; align-items: center; gap: 6px; margin-right: 12px; }
+.mbtn {
+  font-family: var(--font); font-size: 11.5px; font-weight: 700;
+  padding: 5px 14px; border-radius: 20px; border: 1.5px solid;
+  cursor: pointer; transition: all .2s; letter-spacing: .2px;
+}
+.mbtn.off { background: rgba(255,255,255,.07); color: rgba(255,255,255,.45); border-color: rgba(255,255,255,.1); }
+.mbtn.off:hover { background: rgba(255,255,255,.13); color: #fff; border-color: rgba(255,255,255,.25); }
+.mbtn.m-abril { background: #F59E0B; color: #fff; border-color: #F59E0B; box-shadow: 0 0 0 3px rgba(245,158,11,.22); }
+.mbtn.m-maio  { background: var(--teal); color: #fff; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,184,175,.22); }
+.mbtn.m-junho { background: #059669; color: #fff; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,.22); }
+.msep { color: rgba(255,255,255,.18); font-size: 15px; }
+
+/* ═══ FILTERBAR ═════════════════════════════════════════════════════ */
+.filterbar {
+  background: var(--card); border-bottom: 1px solid var(--bdr);
+  padding: 8px 24px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.flbl { font-size: 10.5px; font-weight: 700; color: var(--txt2); margin-right: 2px; }
+.chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; border: 1.5px solid;
+  cursor: pointer; transition: all .18s; user-select: none;
+}
+.chip-b { color: var(--navy2); border-color: var(--navy2); background: #E8EEF8; }
+.chip-t { color: #0A7A75; border-color: var(--teal); background: #D4F5F3; }
+.chip-a { color: #7A4A00; border-color: var(--amber); background: #FEF3C7; }
+.chip.off { opacity: .4; filter: grayscale(.7); }
+.chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.fr { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.rbtn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 16px;
+  background: var(--navy); color: #fff;
+  font-size: 11px; font-weight: 600; cursor: pointer; border: none;
+  font-family: var(--font); transition: background .18s;
+}
+.rbtn:hover { background: var(--navy2); }
+.rbtn svg { transition: transform .55s; }
+.rbtn.spin svg { transform: rotate(360deg); }
+.lupdate { font-size: 10px; color: var(--txt3); }
+
+/* ═══ MAIN CANVAS ═══════════════════════════════════════════════════ */
+.main { padding: 14px 24px 28px; }
+.row { display: grid; gap: 12px; margin-bottom: 12px; }
+.r4  { grid-template-columns: repeat(4,1fr); }
+.r3  { grid-template-columns: 1.65fr 1fr 1.05fr; }
+.r2  { grid-template-columns: 1fr 1fr; }
+.r2b { grid-template-columns: 1.3fr 1fr; }
+
+/* ═══ COMPARATIVO BANNER ════════════════════════════════════════════ */
+.cbanner {
+  display: none;
+  background: linear-gradient(90deg, #09182E 0%, #142850 100%);
+  border: 1px solid rgba(0,212,202,.25); border-radius: var(--r);
+  padding: 12px 18px; margin-bottom: 12px;
+  align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.cbanner.on { display: flex; }
+.cb-title { font-size: 10px; font-weight: 800; color: var(--teal2); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+.cb-items { display: flex; gap: 20px; flex-wrap: wrap; flex: 1; }
+.cb-item { display: flex; flex-direction: column; gap: 1px; }
+.cb-lbl  { font-size: 9px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .6px; }
+.cb-vals { display: flex; align-items: baseline; gap: 8px; }
+.v-abr   { font-family: var(--fontT); font-size: 17px; font-weight: 700; color: #F59E0B; }
+.v-mai   { font-family: var(--fontT); font-size: 17px; font-weight: 700; color: var(--teal2); }
+.carrow  { font-size: 13px; font-weight: 800; }
+.ca-pos  { color: #10B981; } .ca-neg { color: #DC3545; }
+.cbsep   { width: 1px; height: 36px; background: rgba(255,255,255,.08); }
+
+/* ═══ TICKER ════════════════════════════════════════════════════════ */
+.ticker { background: var(--navy); border-radius: var(--r); padding: 9px 16px; display: flex; align-items: center; gap: 12px; overflow: hidden; margin-bottom: 12px; }
+.tk-lbl { font-size: 10px; font-weight: 800; color: var(--teal2); text-transform: uppercase; letter-spacing: .9px; white-space: nowrap; }
+.tk-sep { width: 1px; height: 14px; background: rgba(255,255,255,.12); flex-shrink: 0; }
+.tk-track { flex: 1; overflow: hidden; height: 17px; position: relative; }
+.tk-inner { display: flex; gap: 44px; position: absolute; white-space: nowrap; animation: tkscroll 30s linear infinite; }
+.tk-item  { font-size: 10.5px; color: rgba(255,255,255,.7); display: flex; align-items: center; gap: 7px; }
+.tk-item strong { color: #fff; }
+.tk-tag { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; color: #fff; }
+@keyframes tkscroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+/* ═══ KPI CARD ══════════════════════════════════════════════════════ */
+.kpi {
+  background: var(--card); border-radius: var(--r);
+  padding: 16px 18px; border: 1px solid var(--bdr);
+  border-top: 3px solid transparent; position: relative; overflow: hidden;
+  transition: box-shadow .18s, transform .18s; box-shadow: var(--sh);
+}
+.kpi:hover { box-shadow: var(--sh2); transform: translateY(-2px); }
+.kpi-ico { position: absolute; right: 14px; top: 14px; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.kpi-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--txt3); margin-bottom: 7px; }
+.kpi-val { font-family: var(--fontT); font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 7px; }
+.kpi-sub { font-size: 11px; color: var(--txt3); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+.bg-up  { background: #D1FAE5; color: #065F46; }
+.bg-dn  { background: #FEE2E2; color: #991B1B; }
+.bg-nu  { background: #F1F5F9; color: var(--txt2); }
+
+/* ═══ CARD ══════════════════════════════════════════════════════════ */
+.card { background: var(--card); border-radius: var(--r); border: 1px solid var(--bdr); padding: 16px 18px; box-shadow: var(--sh); transition: box-shadow .18s; }
+.card:hover { box-shadow: var(--sh2); }
+.card-hdr { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.card-ttl { font-size: 13px; font-weight: 700; color: var(--txt); }
+.card-sub { font-size: 10px; color: var(--txt3); font-weight: 400; }
+
+/* ═══ HORIZONTAL BAR ════════════════════════════════════════════════ */
+.hbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.hbar:last-child { margin-bottom: 0; }
+.hbar-lbl { width: 66px; font-size: 11px; font-weight: 600; color: var(--txt2); text-align: right; flex-shrink: 0; }
+.hbar-track { flex: 1; height: 22px; background: #EFF3FB; border-radius: 4px; overflow: hidden; }
+.hbar-fill  { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; transition: width 1.1s cubic-bezier(.22,1,.36,1); }
+.hbar-fill span { font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; }
+.hbar-val { width: 78px; font-size: 11px; font-weight: 700; text-align: right; flex-shrink: 0; }
+.hbar-pct { width: 48px; font-size: 10px; font-weight: 700; text-align: center; padding: 3px 0; border-radius: 4px; color: #fff; flex-shrink: 0; }
+
+/* ═══ DONUT ═════════════════════════════════════════════════════════ */
+.donut-wrap { display: flex; align-items: center; gap: 18px; }
+.leg-row { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.leg-row:last-child { margin-bottom: 0; }
+.leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.leg-nm  { flex: 1; font-size: 11px; color: var(--txt2); }
+.leg-bg  { width: 55px; height: 5px; background: #EFF3FB; border-radius: 3px; overflow: hidden; }
+.leg-bf  { height: 100%; border-radius: 3px; transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+.leg-n   { font-size: 11px; font-weight: 700; width: 26px; text-align: right; }
+
+/* ═══ PLACAR ════════════════════════════════════════════════════════ */
+.p-row { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid #F5F7FB; }
+.p-row:last-child { border-bottom: none; }
+.p-rk   { font-family: var(--fontT); font-size: 13px; font-weight: 700; width: 18px; color: var(--txt3); flex-shrink: 0; }
+.p-dot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.p-info { flex: 1; min-width: 0; }
+.p-name { font-size: 11.5px; font-weight: 700; color: var(--txt); }
+.p-sub  { font-size: 10px; color: var(--txt3); }
+.p-pw   { width: 72px; height: 5px; background: #EFF3FB; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.p-pf   { height: 100%; border-radius: 3px; transition: width 1.1s cubic-bezier(.22,1,.36,1); }
+.p-pct  { font-size: 11.5px; font-weight: 800; width: 36px; text-align: right; flex-shrink: 0; }
+
+/* ═══ TREND PILLS ═══════════════════════════════════════════════════ */
+.tpills { display: flex; gap: 8px; margin-bottom: 12px; }
+.tpill  { flex: 1; padding: 9px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+.tp-val { font-family: var(--fontT); font-size: 20px; font-weight: 800; color: #fff; }
+.tp-lbl { font-size: 10px; color: rgba(255,255,255,.8); font-weight: 500; line-height: 1.3; }
+
+/* ═══ TOP5 ══════════════════════════════════════════════════════════ */
+.t5-row { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid #F5F7FB; }
+.t5-row:last-child { border-bottom: none; }
+.t5-num { width: 20px; height: 20px; border-radius: 50%; font-size: 9.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+.t5-sku { flex: 1; min-width: 0; }
+.t5-nm  { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t5-mt  { font-size: 9.5px; color: var(--txt3); }
+.t5-st  { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; color: #fff; flex-shrink: 0; }
+.t5-imp { font-size: 12.5px; font-weight: 800; flex-shrink: 0; }
+.st-D{background:#DC3545} .st-A{background:#10B981} .st-O{background:#1A3260}
+
+/* ═══ TABELA SKUs ═══════════════════════════════════════════════════ */
+.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tbl th { text-align: left; padding: 8px 9px; color: var(--txt3); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .55px; border-bottom: 2px solid var(--bdr); white-space: nowrap; }
+.tbl td { padding: 9px 9px; border-bottom: 1px solid #F5F7FB; vertical-align: middle; }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: #F8FAFD; }
+.tbl .num { text-align: right; }
+.tbl .ctr { text-align: center; }
+
+/* ═══ CAUSAS RAIZ ═══════════════════════════════════════════════════ */
+.cr-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 18px; }
+.cr-kpi  { background: var(--card); border-radius: var(--r); border: 1px solid var(--bdr); padding: 12px 14px; text-align: center; box-shadow: var(--sh); }
+.cr-v    { font-family: var(--fontT); font-size: 26px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.cr-l    { font-size: 10px; color: var(--txt3); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.sec-ttl { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .9px; color: var(--txt3); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.sec-ttl::after { content:''; flex: 1; height: 1px; background: var(--bdr); }
+.causa {
+  background: var(--card); border-radius: var(--r); border: 1px solid var(--bdr);
+  padding: 16px 18px; margin-bottom: 10px; border-left: 4px solid transparent;
+  box-shadow: var(--sh); transition: box-shadow .18s, transform .18s;
+}
+.causa:hover { box-shadow: var(--sh2); transform: translateX(3px); }
+.ca-critico  { border-left-color: #DC3545; }
+.ca-alto     { border-left-color: #F59E0B; }
+.ca-medio    { border-left-color: #7C3AED; }
+.ca-positivo { border-left-color: #10B981; }
+.causa-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.causa-ttl { font-size: 13px; font-weight: 700; color: var(--txt); flex: 1; }
+.causa-loja { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 12px; color: #fff; white-space: nowrap; flex-shrink: 0; }
+.causa-desc { font-size: 11.5px; color: var(--txt2); line-height: 1.65; margin-bottom: 10px; }
+.causa-imps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.causa-imp  { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px; background: #F5F7FB; }
+.causa-acao { background: #F5F7FB; border-radius: 6px; padding: 10px 14px; border: 1px solid var(--bdr); }
+.acao-lbl   { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: var(--txt3); margin-bottom: 4px; }
+.acao-txt   { font-size: 11.5px; color: var(--txt2); line-height: 1.6; }
+.pri-badge  { font-size: 9.5px; font-weight: 800; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; color: #fff; flex-shrink: 0; }
+.pb-U{background:#DC3545} .pb-A{background:#F59E0B} .pb-M{background:#7C3AED} .pb-P{background:#10B981}
+.meta-g { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 10px; }
+.meta-c { background: var(--card); border-radius: var(--r); padding: 14px; text-align: center; border: 1px solid var(--bdr); box-shadow: var(--sh); }
+.meta-v { font-family: var(--fontT); font-size: 22px; font-weight: 800; }
+.meta-l { font-size: 10px; color: var(--txt3); margin-top: 4px; }
+.meta-ar{ font-size: 18px; margin: 3px 0; }
+
+/* ═══ PAGE VISIBILITY ══════════════════════════════════════════════ */
+.page { display: none; }
+.page.active { display: contents; }
+
+/* ═══ FOOTER ════════════════════════════════════════════════════════ */
+.footer { background: var(--navy); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; }
+.footer span { font-size: 10px; color: rgba(255,255,255,.35); }
+.ft-badge { background: var(--teal); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 4px; }
+
+/* ═══ LOJAS PAGE ════════════════════════════════════════════════════ */
+.loja-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 12px; }
+.loja-card {
+  background: var(--card); border-radius: var(--r); border: 1px solid var(--bdr);
+  padding: 16px 18px; box-shadow: var(--sh); border-top: 3px solid;
+  transition: box-shadow .18s, transform .18s;
+}
+.loja-card:hover { box-shadow: var(--sh2); transform: translateY(-2px); }
+.loja-name { font-family: var(--fontT); font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+.loja-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+.lk-item   { text-align: center; }
+.lk-val    { font-family: var(--fontT); font-size: 20px; font-weight: 700; line-height: 1; }
+.lk-lbl    { font-size: 9.5px; color: var(--txt3); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+.loja-bar  { margin-top: 10px; }
+.lb-hdr    { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.lb-pct    { font-size: 12px; font-weight: 800; }
+.lb-lbl    { font-size: 10px; color: var(--txt3); }
+.lb-track  { height: 8px; background: #EFF3FB; border-radius: 4px; overflow: hidden; }
+.lb-fill   { height: 100%; border-radius: 4px; transition: width 1.1s cubic-bezier(.22,1,.36,1); }
+.loja-status { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 12px; margin-top: 10px; }
+.st-critico { background: #FEE2E2; color: #991B1B; }
+.st-warning { background: #FEF3C7; color: #7A4A00; }
+.st-regular { background: #D1FAE5; color: #065F46; }
+
+@media (max-width:920px){
+  .r4{grid-template-columns:1fr 1fr}
+  .r3,.r2,.r2b{grid-template-columns:1fr}
+  .loja-grid{grid-template-columns:1fr 1fr}
+  .cr-grid{grid-template-columns:1fr 1fr}
+  .meta-g{grid-template-columns:1fr}
+}
+
+/* ═══ RELATÓRIO PAGE ══════════════════════════════════════════════ */
+.rel-cover{
+  background:linear-gradient(135deg,#060F1E 0%,#1A3260 60%,#0B3D6E 100%);
+  border-radius:var(--r);padding:44px 48px 36px;margin-bottom:24px;
+  position:relative;overflow:hidden;
+}
+.rel-cover::before{content:'';position:absolute;right:-60px;top:-60px;width:320px;height:320px;border-radius:50%;background:rgba(0,212,204,.06)}
+.rel-cover::after{content:'';position:absolute;right:80px;bottom:-40px;width:200px;height:200px;border-radius:50%;background:rgba(0,212,204,.04)}
+.rel-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(0,212,204,.15);border:1px solid rgba(0,212,204,.3);border-radius:20px;padding:4px 12px;margin-bottom:18px}
+.rel-badge span{font-size:10.5px;font-weight:700;color:#00D4CC;text-transform:uppercase;letter-spacing:.8px}
+.rel-h1{font-family:var(--fontT,sans-serif);font-size:40px;font-weight:900;color:#fff;line-height:1.05;margin-bottom:8px}
+.rel-h2{font-size:16px;font-weight:400;color:rgba(255,255,255,.6);margin-bottom:28px}
+.rel-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative;z-index:1}
+.rk{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:16px 18px}
+.rk-v{font-family:var(--fontT,sans-serif);font-size:30px;font-weight:900;line-height:1;margin-bottom:5px}
+.rk-l{font-size:10px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px}
+.rk-s{font-size:10.5px;color:rgba(255,255,255,.35);margin-top:3px}
+.rk-b{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:5px}
+.rkb-up{background:rgba(16,185,129,.25);color:#34D399}
+.rkb-dn{background:rgba(220,38,38,.25);color:#FCA5A5}
+
+.sec-hdr-r{display:flex;align-items:center;gap:12px;margin:28px 0 16px;padding-bottom:10px;border-bottom:2px solid var(--bdr)}
+.sec-num-r{font-size:10.5px;font-weight:800;color:var(--teal);background:rgba(0,180,173,.1);border:1px solid rgba(0,180,173,.25);border-radius:6px;padding:3px 10px}
+.sec-tit-r{font-family:var(--fontT,sans-serif);font-size:18px;font-weight:800;color:var(--text)}
+.sec-sub-r{font-size:11px;color:var(--txt3,#94A3B8);margin-left:auto}
+
+.comp-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.comp-tbl th{padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#fff;border:1px solid rgba(255,255,255,.1)}
+.comp-tbl th.th-h{background:#0F2040}
+.comp-tbl th.th-a{background:#7F1D1D}
+.comp-tbl th.th-m{background:#064E3B}
+.comp-tbl th.th-v{background:#1E293B}
+.comp-tbl td{padding:10px 12px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+.comp-tbl tr:nth-child(even) td{background:#F8FAFD}
+.comp-tbl tr:hover td{background:#EEF6FF}
+.cv-a{font-weight:700;color:#B91C1C;text-align:center}
+.cv-m{font-weight:700;color:#065F46;text-align:center}
+.cv-arr{text-align:center;font-size:17px;font-weight:900}
+.arr-up{color:#059669}.arr-dn{color:#DC2626}
+.ctag{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap}
+.ct-g{background:#DCFCE7;color:#065F46}
+.ct-r{background:#FEE2E2;color:#991B1B}
+.ct-b{background:#EFF6FF;color:#1E40AF}
+.ct-y{background:#FEF3C7;color:#7A4A00}
+
+.rel-loja-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.rlc{background:var(--card);border-radius:var(--r);border:1px solid var(--bdr);border-top:4px solid;padding:16px 18px;box-shadow:var(--sh);transition:transform .18s,box-shadow .18s}
+.rlc:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.rlc-name{font-family:var(--fontT,sans-serif);font-size:15px;font-weight:800;margin-bottom:12px}
+.rlc-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.rlk{text-align:center;background:#F8FAFD;border-radius:6px;padding:7px 4px}
+.rlk-v{font-family:var(--fontT,sans-serif);font-size:18px;font-weight:800;line-height:1}
+.rlk-l{font-size:9px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.rlc-bar-wrap{margin-top:10px}
+.rlb-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.rlb-pct{font-size:13px;font-weight:800}
+.rlb-lbl{font-size:10px;color:var(--txt3)}
+.rlb-track{height:6px;background:#EFF3FB;border-radius:3px;overflow:hidden}
+.rlb-fill{height:100%;border-radius:3px;transition:width 1.1s cubic-bezier(.22,1,.36,1)}
+.rlc-st{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;margin-top:8px}
+.rs-crit{background:#FEE2E2;color:#991B1B}
+.rs-warn{background:#FEF3C7;color:#7A4A00}
+.rs-ok{background:#DCFCE7;color:#065F46}
+
+.rl-hbar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.rl-hbar-row:last-child{margin-bottom:0}
+.rl-hbar-nm{width:68px;font-size:11px;font-weight:600;color:var(--txt2);text-align:right;flex-shrink:0}
+.rl-hbar-track{flex:1;height:22px;background:#EFF3FB;border-radius:4px;overflow:hidden}
+.rl-hbar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;transition:width 1.1s cubic-bezier(.22,1,.36,1)}
+.rl-hbar-fill span{font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
+.rl-hbar-badge{width:50px;font-size:10px;font-weight:700;text-align:center;padding:3px 0;border-radius:4px;color:#fff;flex-shrink:0}
+
+.rl-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.rl-tbl th{padding:9px 11px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#fff;background:var(--navy2,#1A3260);border:1px solid rgba(255,255,255,.1);white-space:nowrap}
+.rl-tbl td{padding:9px 11px;border-bottom:1px solid #F1F5FB;vertical-align:middle}
+.rl-tbl tr:hover td{background:#F8FAFD}
+.rl-tbl .tc{text-align:center}
+.rl-tbl .tr{text-align:right;white-space:nowrap}
+.rl-rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:9px;font-weight:800;color:#fff}
+.rl-st-D{display:inline-flex;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:4px;background:#FEE2E2;color:#991B1B}
+.rl-st-A{display:inline-flex;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:4px;background:#DCFCE7;color:#065F46}
+.rl-st-O{display:inline-flex;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:4px;background:#EFF6FF;color:#1E40AF}
+.dif-p{color:#DC2626;font-weight:700}
+.dif-n{color:#059669;font-weight:700}
+
+.rel-causa{background:var(--card);border-radius:var(--r);border:1px solid var(--bdr);border-left:5px solid;padding:16px 18px;margin-bottom:10px;box-shadow:var(--sh);transition:box-shadow .18s,transform .18s}
+.rel-causa:hover{box-shadow:var(--sh2);transform:translateX(3px)}
+.rc-crit{border-left-color:#DC2626}
+.rc-alto{border-left-color:#D97706}
+.rc-med{border-left-color:#6D28D9}
+.rc-pos{border-left-color:#059669}
+.rc-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.rc-title{font-size:13px;font-weight:700;color:var(--text);flex:1}
+.rc-loja{font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:12px;color:#fff;white-space:nowrap;flex-shrink:0}
+.rc-desc{font-size:12px;color:var(--txt2);line-height:1.7;margin-bottom:10px}
+.rc-metrics{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.rc-m{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;background:#F8FAFD;border:1px solid var(--bdr)}
+.rc-acao{background:#F8FAFD;border-radius:6px;padding:10px 14px;border-left:3px solid var(--teal)}
+.rc-acao-lbl{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--teal);margin-bottom:4px}
+.rc-acao-txt{font-size:12px;color:var(--txt2);line-height:1.65}
+.rc-pri{font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:4px;text-transform:uppercase;color:#fff;flex-shrink:0}
+.rcp-U{background:#DC2626}.rcp-A{background:#D97706}.rcp-M{background:#6D28D9}.rcp-P{background:#059669}
+
+.rel-acoes-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.rel-acoes-tbl th{padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#fff;background:var(--navy2,#1A3260);border:1px solid rgba(255,255,255,.1)}
+.rel-acoes-tbl td{padding:10px 12px;border-bottom:1px solid #F1F5FB;vertical-align:middle}
+.rel-acoes-tbl tr:nth-child(even) td{background:#F8FAFD}
+.rel-acoes-tbl tr:hover td{background:#EEF6FF}
+
+.rel-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.rmc{background:var(--card);border-radius:var(--r);border:1px solid var(--bdr);padding:18px;text-align:center;box-shadow:var(--sh)}
+.rmc-v{font-family:var(--fontT,sans-serif);font-size:30px;font-weight:900;line-height:1;margin-bottom:5px}
+.rmc-ar{font-size:20px;margin:6px 0}
+.rmc-l{font-size:11px;color:var(--txt3);font-weight:500}
+.rmc-tag{display:inline-flex;font-size:9.5px;font-weight:700;padding:3px 10px;border-radius:10px;margin-top:6px}
+
+.rel-tpills{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.rel-tpill{border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.rtp-v{font-family:var(--fontT,sans-serif);font-size:22px;font-weight:900;color:#fff;line-height:1}
+.rtp-l{font-size:10.5px;color:rgba(255,255,255,.8);font-weight:500;line-height:1.4}
+
+.rel-print-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:none;background:var(--teal);color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto;font-family:var(--font)}
+.rel-print-btn:hover{filter:brightness(1.1)}
+
+@media print{
+  .rel-cover{background:#0F2040!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  nav,.filterbar,.month-sw,.live-pill,.tabs,.cbanner,.ticker{display:none!important}
+  .page.active{display:block!important}
+  #page-relatorio{display:block!important}
+  .rel-causa,.rlc,.rmc{break-inside:avoid}
+}
+
+</style></head>
+<body>
+<nav class="topbar">
+<div class="tb-accent"></div>
+<div class="tb-brand">Auditoria de Inventário · <em>Rede de Farmácias</em></div>
+<div class="month-sw">
+<button class="mbtn off" id="btnAbril" onclick="setMonth('abril')">Abril 2026</button>
+<span class="msep">|</span>
+<button class="mbtn m-maio" id="btnMaio" onclick="setMonth('maio')">Maio 2026</button>
+<span class="msep">|</span>
+<button class="mbtn off" id="btnJunho" onclick="setMonth('junho')">Junho 2026</button>
+</div>
+<div class="live-pill"><div class="live-dot"></div>AO VIVO</div>
+<div class="tabs">
+<button class="tab active" onclick="showTab(this,'visao')">Visão Geral</button>
+<button class="tab" onclick="showTab(this,'lojas')">Lojas</button>
+<button class="tab" onclick="showTab(this,'skus')">SKUs</button>
+<button class="tab" onclick="showTab(this,'causas')">Causas Raiz</button>
+<button class="tab" onclick="showTab(this,'relatorio')">📋 Relatório</button>
+</div>
+</nav>
+<div class="filterbar">
+<span class="flbl">Filtros:</span>
+<div class="chip chip-b" id="chipMes" onclick="toggleChip(this)">
+<span class="chip-dot"></span><span id="chipMesLbl">Maio 2026</span>
+</div>
+<div class="chip chip-t" onclick="toggleChip(this)"><span class="chip-dot"></span>Todas as lojas</div>
+<div class="chip chip-a" onclick="toggleChip(this)"><span class="chip-dot"></span>Todas as semanas</div>
+<div class="fr">
+<span class="lupdate" id="lupdate">Dados: 22/05/2026</span>
+<button class="rbtn" id="rbtn" onclick="refreshNow()">
+<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+<path d="M21 3v5h-5"/>
+<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+<path d="M8 16H3v5"/>
+</svg>
+Atualizar
+</button>
+</div>
+</div>
+<main class="main">
+<div class="cbanner" id="cbanner">
+<div class="cb-title">📊 Comparativo Mensal</div>
+<div class="cb-items" id="cbItems"></div>
+</div>
+<div class="ticker">
+<span class="tk-lbl">⚡ Alertas</span>
+<div class="tk-sep"></div>
+<div class="tk-track"><div class="tk-inner" id="tkInner"></div></div>
+</div>
+<div class="page active" id="page-visao">
+<div class="row r4" id="kpiRow"></div>
+<div class="row r3">
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Impacto Financeiro por Loja</div><div class="card-sub">R$ · % ajustado</div></div>
+<div id="barChart"></div>
+</div>
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Tipos de Divergência</div><div class="card-sub" id="tiposTotal"></div></div>
+<div class="donut-wrap">
+<svg id="donutSvg" width="118" height="118" viewBox="0 0 118 118" role="img" aria-label="Rosca tipos de divergência" style="flex-shrink:0"></svg>
+<div id="donutLeg" style="flex:1"></div>
+</div>
+</div>
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Placar de Lojas</div><div class="card-sub">% ajustado</div></div>
+<div id="placar"></div>
+</div>
+</div>
+<div class="row r2">
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Tendência Semanal</div><div class="card-sub">Divergências vs. Ajustados</div></div>
+<div class="tpills" id="tpills"></div>
+<div style="height:160px;position:relative"><canvas id="lineChart" role="img" aria-label="Linha de tendência semanal"></canvas></div>
+</div>
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Top 5 SKUs — Maior Impacto</div><div class="card-sub">dados reais da planilha</div></div>
+<div id="top5"></div>
+</div>
+</div>
+</div>
+<div class="page" id="page-lojas">
+<div class="loja-grid" id="lojaCards"></div>
+<div class="row r2">
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Faltas vs. Sobras por Loja</div></div>
+<div style="height:270px;position:relative"><canvas id="faltasChart" role="img" aria-label="Faltas e sobras"></canvas></div>
+</div>
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Impacto por Semana (R$)</div></div>
+<div style="height:270px;position:relative"><canvas id="semChart" role="img" aria-label="Impacto semanal"></canvas></div>
+</div>
+</div>
+</div>
+<div class="page" id="page-skus">
+<div class="row r2b">
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Top 15 SKUs por Impacto Financeiro</div><div class="card-sub">dados exatos da planilha</div></div>
+<div style="overflow-x:auto"><div id="skuTbl"></div></div>
+</div>
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Distribuição por Tipo</div></div>
+<div style="height:300px;position:relative"><canvas id="tipoChart" role="img" aria-label="Tipos de divergência"></canvas></div>
+<div id="tipoLeg" style="margin-top:12px"></div>
+</div>
+</div>
+</div>
+<div class="page" id="page-causas">
+<div id="causasContent"></div>
+</div>
+<div class="page" id="page-relatorio">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+<div>
+<div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Relatório Estratégico</div>
+<div style="font-family:var(--fontT,sans-serif);font-size:22px;font-weight:800;color:var(--text)">Auditoria de Inventário · Rede de Farmácias</div>
+<div style="font-size:12px;color:var(--txt3,#94A3B8);margin-top:2px">Análise Comparativa Abril → Maio 2026 · Dados reais das planilhas oficiais · Para o Gestor</div>
+</div>
+<button class="rel-print-btn no-print" onclick="window.print()">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+Imprimir / PDF
+</button>
+</div>
+<div class="rel-cover">
+<div class="rel-badge"><span>Relatório Estratégico · Dados Reais das Planilhas Oficiais</span></div>
+<div class="rel-h1" id="relH1">Análise Comparativa<br>Abril → Maio 2026</div>
+<div class="rel-h2" id="relH2">Rede de Farmácias · 6 Lojas · Diagnóstico operacional completo · Confidencial</div>
+<div class="rel-kpis">
+<div class="rk"><div class="rk-v" style="color:#FCA5A5">3,8%</div><div class="rk-l">Acurácia Abril</div><div class="rk-s">Colapso sistêmico</div></div>
+<div class="rk"><div class="rk-v" style="color:#34D399">27,8%</div><div class="rk-l">Acurácia Maio</div><span class="rk-b rkb-up">↑ +24 pontos percentuais</span></div>
+<div class="rk"><div class="rk-v" style="color:#FCD34D">−40,5%</div><div class="rk-l">Redução de Impacto</div><div class="rk-s">R$ 9.277 → R$ 5.522</div></div>
+<div class="rk"><div class="rk-v" style="color:#34D399">−53,8%</div><div class="rk-l">Redução Divergências</div><div class="rk-s">253 → 117 ocorrências</div></div>
+</div>
+</div>
+<div class="sec-hdr-r"><div class="sec-num-r">01</div><div class="sec-tit-r">Comparativo Estratégico Executivo</div><div class="sec-sub-r">Dados reais · Planilhas oficiais</div></div>
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Indicadores da Rede — Antes e Depois</div><div class="card-sub">Todas as 6 lojas consolidadas</div></div>
+<table class="comp-tbl">
+<thead><tr>
+<th class="th-h" style="width:27%">Indicador</th>
+<th class="th-a" style="width:17%">Abril 2026</th>
+<th class="th-v" style="width:5%;text-align:center">→</th>
+<th class="th-m" style="width:17%">Maio 2026</th>
+<th class="th-v" style="width:12%">Variação</th>
+<th class="th-v" style="width:22%">Avaliação</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>SKUs Auditados</strong></td><td class="cv-a">263</td><td class="cv-arr">→</td><td class="cv-m">162</td><td style="text-align:center;color:#64748B">−38,4%</td><td style="text-align:center"><span class="ctag ct-b">Auditoria direcionada</span></td></tr>
+<tr><td><strong>Divergências Totais</strong></td><td class="cv-a">253</td><td class="cv-arr arr-dn">↓</td><td class="cv-m">117</td><td style="text-align:center;color:#059669;font-weight:700">−53,8%</td><td style="text-align:center"><span class="ctag ct-g">Melhora significativa</span></td></tr>
+<tr><td><strong>Itens Ajustados</strong></td><td class="cv-a">10 (3,8%)</td><td class="cv-arr arr-up">↑</td><td class="cv-m">43 (26,5%)</td><td style="text-align:center;color:#059669;font-weight:700">+330%</td><td style="text-align:center"><span class="ctag ct-g">Forte melhora</span></td></tr>
+<tr><td><strong>Acurácia da Rede</strong></td><td class="cv-a">3,8%</td><td class="cv-arr arr-up">↑</td><td class="cv-m">27,8%</td><td style="text-align:center;color:#059669;font-weight:700">+24pp</td><td style="text-align:center"><span class="ctag ct-g">Evolução expressiva</span></td></tr>
+<tr><td><strong>Impacto Financeiro</strong></td><td class="cv-a">R$ 9.277,91</td><td class="cv-arr arr-dn">↓</td><td class="cv-m">R$ 5.522,89</td><td style="text-align:center;color:#059669;font-weight:700">−40,5%</td><td style="text-align:center"><span class="ctag ct-g">Economia R$ 3.755</span></td></tr>
+<tr><td><strong>Itens com Falta</strong></td><td class="cv-a">56</td><td class="cv-arr arr-dn">↓</td><td class="cv-m">28</td><td style="text-align:center;color:#059669;font-weight:700">−50,0%</td><td style="text-align:center"><span class="ctag ct-g">Redução relevante</span></td></tr>
+<tr><td><strong>Itens com Sobra</strong></td><td class="cv-a">197</td><td class="cv-arr arr-dn">↓</td><td class="cv-m">125</td><td style="text-align:center;color:#059669;font-weight:700">−36,5%</td><td style="text-align:center"><span class="ctag ct-g">Controle melhorado</span></td></tr>
+<tr><td><strong>Lojas em Nível Crítico</strong></td><td class="cv-a">6 de 6 (100%)</td><td class="cv-arr arr-dn">↓</td><td class="cv-m">1 de 6 (17%)</td><td style="text-align:center;color:#059669;font-weight:700">−83,3%</td><td style="text-align:center"><span class="ctag ct-g">Evolução da rede</span></td></tr>
+<tr><td><strong>Melhor Loja</strong></td><td class="cv-a">Cruzília 11,8%</td><td class="cv-arr arr-up">↑</td><td class="cv-m">Cruzília 40,0%</td><td style="text-align:center;color:#059669;font-weight:700">+28,2pp</td><td style="text-align:center"><span class="ctag ct-g">Referência da rede</span></td></tr>
+<tr><td><strong>Tendência Semanal</strong></td><td class="cv-a">—</td><td class="cv-arr">→</td><td class="cv-m">70 → 7 diverg.</td><td style="text-align:center;color:#059669;font-weight:700">−90%</td><td style="text-align:center"><span class="ctag ct-g">Tendência forte</span></td></tr>
+</tbody>
+</table>
+</div>
+<div class="sec-hdr-r"><div class="sec-num-r">02</div><div class="sec-tit-r">Resultado por Loja — Maio 2026</div><div class="sec-sub-r">Dados reais da planilha · 22/05/2026</div></div>
+<div class="rel-loja-grid" id="relLojaGrid"></div>
+<div class="card" style="margin-top:14px">
+<div class="card-hdr"><div class="card-ttl">Impacto Financeiro por Loja</div><div class="card-sub">R$ real · % ajustado</div></div>
+<div id="relBarChart"></div>
+</div>
+<div class="sec-hdr-r"><div class="sec-num-r">03</div><div class="sec-tit-r">Tendência Semanal — Maio 2026</div><div class="sec-sub-r">Dado mais relevante do período</div></div>
+<div class="rel-tpills">
+<div class="rel-tpill" style="background:#DC2626"><div class="rtp-v">−90%</div><div class="rtp-l">Queda de divergências<br>SEM 01 (70) → SEM 04 (7)</div></div>
+<div class="rel-tpill" style="background:#059669"><div class="rtp-v">+43</div><div class="rtp-l">Itens ajustados acumulados<br>4 semanas de Maio</div></div>
+<div class="rel-tpill" style="background:#1A3260"><div class="rtp-v">−61%</div><div class="rtp-l">Queda no impacto financeiro<br>R$ 2.093 → R$ 821</div></div>
+</div>
+<div class="grid2">
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Divergências vs. Ajustados</div><div class="card-sub">por semana</div></div>
+<div style="height:190px;position:relative"><canvas id="relLineChart" role="img" aria-label="Linha tendência semanal"></canvas></div>
+</div>
+<div class="card">
+<div class="card-hdr"><div class="card-ttl">Impacto Financeiro Semanal</div><div class="card-sub">R$</div></div>
+<div style="height:190px;position:relative"><canvas id="relSemChart" role="img" aria-label="Impacto semanal"></canvas></div>
+</div>
+</div>
+<div class="card" style="margin-top:14px">
+<div class="card-hdr"><div class="card-ttl">Detalhe Semanal</div></div>
+<table class="comp-tbl">
+<thead><tr><th class="th-h">Semana</th><th class="th-h" style="text-align:center">SKUs</th><th class="th-h" style="text-align:center">Divergentes</th><th class="th-h" style="text-align:center">Ajustados</th><th class="th-h" style="text-align:right">Impacto R$</th><th class="th-h" style="text-align:center">Redução vs SEM01</th></tr></thead>
+<tbody>
+<tr><td><strong>SEM 01</strong></td><td style="text-align:center">71</td><td style="text-align:center;color:#DC2626;font-weight:700">70</td><td style="text-align:center;color:#059669;font-weight:700">0</td><td style="text-align:right;color:#DC2626;font-weight:700">R$ 2.093,85</td><td style="text-align:center"><span class="ctag ct-r">Ponto de partida</span></td></tr>
+<tr><td><strong>SEM 02</strong></td><td style="text-align:center">48</td><td style="text-align:center;color:#D97706;font-weight:700">25</td><td style="text-align:center;color:#059669;font-weight:700">22</td><td style="text-align:right;color:#D97706;font-weight:700">R$ 1.853,04</td><td style="text-align:center"><span class="ctag ct-y">−64% diverg.</span></td></tr>
+<tr><td><strong>SEM 03</strong></td><td style="text-align:center">28</td><td style="text-align:center;color:#059669;font-weight:700">15</td><td style="text-align:center;color:#059669;font-weight:700">13</td><td style="text-align:right;color:#059669;font-weight:700">R$ 754,55</td><td style="text-align:center"><span class="ctag ct-g">−79% diverg.</span></td></tr>
+<tr><td><strong>SEM 04</strong></td><td style="text-align:center">15</td><td style="text-align:center;color:#059669;font-weight:700">7</td><td style="text-align:center;color:#059669;font-weight:700">8</td><td style="text-align:right;color:#059669;font-weight:700">R$ 821,45</td><td style="text-align:center"><span class="ctag ct-g">−90% diverg.</span></td></tr>
+</tbody>
+</table>
+</div>
+<div class="sec-hdr-r"><div class="sec-num-r">04</div><div class="sec-tit-r">Análise por Tipo de Divergência</div><div class="sec-sub-r">162 SKUs · 6 tipos identificados</div></div>
+<div class="card">
+<table class="comp-tbl">
+<thead><tr><th class="th-h">Tipo de Divergência</th><th class="th-h" style="text-align:center">Ocorrências</th><th class="th-h" style="text-align:center">% Total</th><th class="th-h" style="text-align:right">Impacto R$</th><th class="th-h" style="text-align:center">% Financeiro</th><th class="th-h">Ação Prioritária</th></tr></thead>
+<tbody>
+<tr><td><strong>Ajuste de venda não baixada</strong></td><td style="text-align:center">62</td><td style="text-align:center">40,5%</td><td style="text-align:right;font-weight:700;color:#DC2626">R$ 1.388,64</td><td style="text-align:center">25,1%</td><td><span class="ctag ct-r">Corrigir PDV-ERP</span></td></tr>
+<tr><td><strong>Ajuste de estoque</strong></td><td style="text-align:center">51</td><td style="text-align:center">33,3%</td><td style="text-align:right;font-weight:700;color:#DC2626">R$ 1.860,88</td><td style="text-align:center">33,7%</td><td><span class="ctag ct-r">Aprovação obrigatória</span></td></tr>
+<tr><td><strong>Erro de entrada NF</strong></td><td style="text-align:center">14</td><td style="text-align:center">9,2%</td><td style="text-align:right;font-weight:700;color:#D97706">R$ 1.086,34</td><td style="text-align:center">19,7%</td><td><span class="ctag ct-y">Conferência dupla</span></td></tr>
+<tr><td><strong>Divergência física</strong></td><td style="text-align:center">24</td><td style="text-align:center">15,7%</td><td style="text-align:right;font-weight:700;color:#D97706">R$ 997,89</td><td style="text-align:center">18,1%</td><td><span class="ctag ct-y">Checklist contagem</span></td></tr>
+<tr><td><strong>Divergência sistêmica</strong></td><td style="text-align:center">5</td><td style="text-align:center">3,3%</td><td style="text-align:right;font-weight:700">R$ 189,14</td><td style="text-align:center">3,4%</td><td><span class="ctag ct-b">Revisar cadastros</span></td></tr>
+<tr><td><strong>Avaria</strong></td><td style="text-align:center">6</td><td style="text-align:center">3,9%</td><td style="text-align:right">R$ 0,00</td><td style="text-align:center">0,0%</td><td><span class="ctag ct-b">Registrar ocorrência</span></td></tr>
+<tr style="background:#F0FDF4"><td><strong>TOTAL</strong></td><td style="text-align:center"><strong>162</strong></td><td style="text-align:center"><strong>100%</strong></td><td style="text-align:right"><strong>R$ 5.522,89</strong></td><td style="text-align:center"><strong>100%</strong></td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<div class="sec-hdr-r"><div class="sec-num-r">05</div><div class="sec-tit-r">Top 15 SKUs por Impacto Financeiro — Maio 2026</div><div class="sec-sub-r">Físico · Sistema · Diferença · Custo unitário · Status real</div></div>
+<div class="card" style="overflow-x:auto">
+<table class="rl-tbl"><thead><tr>
+<th>#</th><th>SKU</th><th>Loja</th><th class="tc">Físico</th><th class="tc">Sistema</th><th class="tc">Δ</th><th class="tr">Custo Unit.</th><th class="tr">Impacto</th><th>Tipo</th><th class="tc">Status</th><th class="tc">Sem.</th>
+</tr></thead><tbody id="relSkuBody"></tbody></table>
+</div>
+<div class="sec-hdr-r"><div class="sec-num-r">06</div><div class="sec-tit-r">Análise de Causas Raiz — Maio 2026</div><div class="sec-sub-r">Diagnóstico independente · Ações corretivas para Junho 2026</div></div>
+<div id="relCausasContent"></div>
+<div class="sec-hdr-r"><div class="sec-num-r">07</div><div class="sec-tit-r">Plano de Ação — Junho 2026</div><div class="sec-sub-r">Prioridades baseadas no impacto financeiro real</div></div>
+<div class="card">
+<table class="rel-acoes-tbl">
+<thead><tr><th style="width:32px">#</th><th>Ação Prioritária</th><th style="width:150px">Responsável</th><th style="width:100px">Prazo</th><th style="width:100px">Prioridade</th></tr></thead>
+<tbody>
+<tr><td style="text-align:center"><strong>1</strong></td><td>Resolver integração PDV-ERP — 62 ocorrências de "venda não baixada" persistem por 2 meses consecutivos</td><td>TI + Operações</td><td style="font-weight:700;color:#DC2626">15 dias</td><td><span class="rc-pri rcp-U">URGENTE</span></td></tr>
+<tr><td style="text-align:center"><strong>2</strong></td><td>Investigar cadastro Permanganato Potássio CRV — excedente sistêmico +105 unidades (erro unidade de medida)</td><td>TI</td><td style="font-weight:700;color:#DC2626">Semana 1</td><td><span class="rc-pri rcp-U">URGENTE</span></td></tr>
+<tr><td style="text-align:center"><strong>3</strong></td><td>Auditar ABS Geriátrico Dry — reincidência 2º mês consecutivo (Abril: +33un R$395 / Maio: +21un R$251,79)</td><td>Ger. Carrossel</td><td style="font-weight:700;color:#DC2626">Semana 1</td><td><span class="rc-pri rcp-U">URGENTE</span></td></tr>
+<tr><td style="text-align:center"><strong>4</strong></td><td>Aprovação formal para os 51 ajustes de estoque — R$ 1.860,88 de impacto sem rastreabilidade em Maio</td><td>Supervisores</td><td style="font-weight:700;color:#D97706">Semana 1</td><td><span class="rc-pri rcp-A">ALTO</span></td></tr>
+<tr><td style="text-align:center"><strong>5</strong></td><td>Conferência dupla entrada de NF — erros aumentaram 9 (Abril) → 14 (Maio) · Impacto R$ 1.086,34</td><td>Ger. de Loja</td><td style="font-weight:700;color:#D97706">Imediato</td><td><span class="rc-pri rcp-A">ALTO</span></td></tr>
+<tr><td style="text-align:center"><strong>6</strong></td><td>Plano individual Baependi (12,5%) e Matriz (23,1%) — menores índices de ajuste da rede</td><td>Gestores</td><td style="font-weight:700;color:#D97706">Semana 2</td><td><span class="rc-pri rcp-A">ALTO</span></td></tr>
+<tr><td style="text-align:center"><strong>7</strong></td><td>Replicar processo de Cruzília (40,0%) nas demais lojas — reunião de boas práticas</td><td>Operações</td><td style="font-weight:700;color:#6D28D9">Semana 2</td><td><span class="rc-pri rcp-M">MÉDIO</span></td></tr>
+<tr><td style="text-align:center"><strong>8</strong></td><td>Auditar produtos MG/ML no CRV — verificar parametrização de unidades de medida no sistema</td><td>TI + CRV</td><td style="font-weight:700;color:#6D28D9">Semana 3</td><td><span class="rc-pri rcp-M">MÉDIO</span></td></tr>
+</tbody>
+</table>
+</div>
+<div class="sec-hdr-r"><div class="sec-num-r">08</div><div class="sec-tit-r">Metas de Acurácia — Trajetória 2026</div><div class="sec-sub-r">Com base no ritmo real de +24pp/mês</div></div>
+<div class="rel-meta-grid">
+<div class="rmc"><div class="rmc-v" style="color:#DC2626">3,8%</div><div class="rmc-ar" style="color:#DC2626">→</div><div class="rmc-l">Acurácia Real · Abril 2026</div><span class="rmc-tag" style="background:#FEE2E2;color:#991B1B">Colapso sistêmico</span></div>
+<div class="rmc"><div class="rmc-v" style="color:#D97706">27,8%</div><div class="rmc-ar" style="color:#D97706">→</div><div class="rmc-l">Acurácia Real · Maio 2026</div><span class="rmc-tag" style="background:#FEF3C7;color:#7A4A00">+24pp · Em recuperação</span></div>
+<div class="rmc"><div class="rmc-v" style="color:#059669">60%</div><div class="rmc-ar" style="color:#059669">→</div><div class="rmc-l">Meta · Junho 2026</div><span class="rmc-tag" style="background:#DCFCE7;color:#065F46">Exige dobrar o ritmo</span></div>
+<div class="rmc"><div class="rmc-v" style="color:#059669">80%</div><div class="rmc-ar" style="color:#059669">→</div><div class="rmc-l">Meta · Julho 2026</div><span class="rmc-tag" style="background:#DCFCE7;color:#065F46">Estabilização</span></div>
+<div class="rmc"><div class="rmc-v" style="color:#059669">90%+</div><div class="rmc-ar"></div><div class="rmc-l">Meta · Agosto 2026</div><span class="rmc-tag" style="background:#DCFCE7;color:#065F46">Referência de mercado</span></div>
+<div class="rmc" style="background:linear-gradient(135deg,#0D1F3C,#1A3260)">
+<div class="rmc-v" style="color:#34D399">+24pp</div>
+<div class="rmc-ar" style="color:#00D4CC">↑</div>
+<div class="rmc-l" style="color:rgba(255,255,255,.55)">Ganho real Abril→Maio</div>
+<span class="rmc-tag" style="background:rgba(0,212,204,.2);color:#34D399">Ritmo sustentável</span>
+</div>
+</div>
+<div class="card" style="margin-top:16px">
+<div class="card-hdr"><div class="card-ttl">Visão Crítica — O que os dados realmente dizem</div></div>
+<p style="font-size:13px;color:var(--txt2);line-height:1.8;margin-bottom:14px">A evolução de <strong>3,8% para 27,8%</strong> em um mês é resultado de diagnóstico preciso e execução disciplinada. Os dados confirmam que o problema era estrutural: 7 causas raiz distintas, nenhuma loja acima de 12% em Abril, R$ 9.277 de impacto. A tendência semanal de <strong>−90% nas divergências</strong> é o indicador mais robusto da eficácia das ações.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div style="background:#F0FDF4;border-radius:8px;padding:14px 16px;border-left:4px solid #059669">
+<div style="font-size:12px;font-weight:700;color:#065F46;margin-bottom:6px">✅ O que funcionou</div>
+<div style="font-size:12px;color:#374151;line-height:1.75">Carrossel reduz impacto R$5.544 → R$2.737 (−50,6%). Cruzília atinge 40% com processo padronizado. Tendência −90% semanal confirma eficácia das ações imediatas. 43 itens ajustados vs 10 em Abril (+330%).</div>
+</div>
+<div style="background:#FFFBEB;border-radius:8px;padding:14px 16px;border-left:4px solid #D97706">
+<div style="font-size:12px;font-weight:700;color:#7A4A00;margin-bottom:6px">⚠️ O que ainda precisa resolver</div>
+<div style="font-size:12px;color:#374151;line-height:1.75">PDV-ERP persiste como causa raiz (62 ocorrências). Erros de NF <em>aumentaram</em> de 9 para 14. Baependi ainda em 12,5%. Meta de 60% para Junho exige dobrar o ritmo atual de ajustes.</div>
+</div>
+</div>
+</div>
+<div style="text-align:center;padding:24px 0 8px;color:var(--txt3,#94A3B8);font-size:11px">
+Rede de Farmácias · Relatório Estratégico de Auditoria · Dados reais das planilhas oficiais · Confidencial · Emitido em 22/05/2026
+</div>
+</div>
+</main>
+<footer class="footer">
+<span>Rede de Farmácias · Auditoria de Inventário · Gerado automaticamente a partir das planilhas oficiais</span>
+<span id="ftTime"></span>
+<span class="ft-badge">LIVE</span>
+</footer><script>
+// ════════════════════════════════════════════════════════════════════
+// DADOS REAIS — EXTRAÍDOS DAS PLANILHAS OFICIAIS
+// ════════════════════════════════════════════════════════════════════
+
+const DB = {
+  maio: {
+    meta:{ mes:"Maio 2026", gerado:"22/05/2026",
+      skus:162, div:117, ajust:43, ok:2, imp:5522.89,
+      faltas:28, sobras:125, acuracia:27.8, pendentes:117 },
+    lojas:[
+      {n:"Carrossel",skus:67,div:49,ajust:18,ok:0,faltas:14,sobras:53,imp:2737.81,cor:"#E74C3C"},
+      {n:"Matriz",   skus:26,div:20,ajust:5, ok:1,faltas:9, sobras:17,imp:1245.25,cor:"#1A3260"},
+      {n:"Cruzília", skus:30,div:18,ajust:11,ok:1,faltas:2, sobras:21,imp:691.61, cor:"#00B8AF"},
+      {n:"CRV",      skus:14,div:9, ajust:5, ok:0,faltas:0, sobras:14,imp:379.00, cor:"#F59E0B"},
+      {n:"Baependi", skus:16,div:14,ajust:2, ok:0,faltas:2, sobras:12,imp:320.43, cor:"#7C3AED"},
+      {n:"Cristina", skus:9, div:7, ajust:2, ok:0,faltas:1, sobras:8, imp:148.79, cor:"#64748B"}
+    ],
+    sems:{ labels:["SEM 01","SEM 02","SEM 03","SEM 04"],
+           divs:[70,25,15,7], imps:[2093.85,1853.04,754.55,821.45], ajust:[0,22,13,8] },
+    tipos:[
+      {n:"Aj. venda não baixada",v:62, imp:1388.64,c:"#00B8AF"},
+      {n:"Ajuste de estoque",    v:51, imp:1860.88,c:"#1A3260"},
+      {n:"Divergência física",   v:24, imp:997.89, c:"#DC3545"},
+      {n:"Erro de entrada NF",   v:14, imp:1086.34,c:"#F59E0B"},
+      {n:"Avaria",               v:6,  imp:0,      c:"#7C3AED"},
+      {n:"Divergência sistêmica",v:5,  imp:189.14, c:"#64748B"}
+    ],
+    top15:[
+      {sku:"ALGINAC 1000 C/30 COMP",             loja:"Matriz",    fis:8,  sis:2,  dif:"+6",   unit:56.61, imp:339.66, tipo:"Aj. venda não baixada",status:"Divergente",sem:"SEM 02"},
+      {sku:"ABS Geriatrico Dry Economics 20UND",  loja:"Carrossel", fis:21, sis:0,  dif:"+21",  unit:11.99, imp:251.79, tipo:"Erro de entrada NF",   status:"Divergente",sem:"SEM 02"},
+      {sku:"Pulmosonic Sta Nebulizador Amarelo",  loja:"Carrossel", fis:1,  sis:0,  dif:"+1",   unit:184.21,imp:184.21, tipo:"Divergência física",   status:"Divergente",sem:"SEM 02"},
+      {sku:"Caramelo de Creatina Intelligence",   loja:"Carrossel", fis:0,  sis:2,  dif:"-2",   unit:91.10, imp:182.20, tipo:"Divergência física",   status:"Divergente",sem:"SEM 01"},
+      {sku:"Paleta de Rosto Minne Mouse Rose",    loja:"Carrossel", fis:3,  sis:1,  dif:"+2",   unit:80.79, imp:161.58, tipo:"Erro de entrada NF",   status:"Divergente",sem:"SEM 04"},
+      {sku:"Permaganato de Potassio 100MG",       loja:"CRV",       fis:105,sis:0,  dif:"+105", unit:1.34,  imp:140.70, tipo:"Divergência sistêmica",status:"Divergente",sem:"SEM 01"},
+      {sku:"Kit Cicatricure Protetor Solar",      loja:"Matriz",    fis:1,  sis:6,  dif:"-5",   unit:27.49, imp:137.45, tipo:"Erro de entrada NF",   status:"Ajustado",  sem:"SEM 02"},
+      {sku:"ENTRESTO 200MG 60CPR",               loja:"Carrossel", fis:3,  sis:0,  dif:"+3",   unit:42.28, imp:126.84, tipo:"Ajuste de estoque",    status:"Ajustado",  sem:"SEM 03"},
+      {sku:"Pressat 2,5mg 30cpr",                loja:"Carrossel", fis:10, sis:14, dif:"-4",   unit:31.54, imp:126.16, tipo:"Ajuste de estoque",    status:"Ajustado",  sem:"SEM 04"},
+      {sku:"Ninho Fases 1+ 800G",                loja:"Matriz",    fis:80, sis:83, dif:"-3",   unit:39.42, imp:118.26, tipo:"Divergência física",   status:"Ok",        sem:"SEM 01"},
+      {sku:"Maxalt 10mg 2cpr",                   loja:"Carrossel", fis:9,  sis:13, dif:"-4",   unit:29.26, imp:117.04, tipo:"Ajuste de estoque",    status:"Ajustado",  sem:"SEM 04"},
+      {sku:"Valda Friends Past Morango 25G",      loja:"Baependi",  fis:33, sis:3,  dif:"+30",  unit:3.70,  imp:111.00, tipo:"Ajuste de estoque",    status:"Divergente",sem:"SEM 02"},
+      {sku:"Colonia Desodorante Amburama 100ML",  loja:"Carrossel", fis:1,  sis:0,  dif:"+1",   unit:95.95, imp:95.95,  tipo:"Ajuste de estoque",    status:"Divergente",sem:"SEM 01"},
+      {sku:"AMIORON 200MG 20CPR",               loja:"Carrossel", fis:7,  sis:1,  dif:"+6",   unit:15.60, imp:93.60,  tipo:"Erro de entrada NF",   status:"Ajustado",  sem:"SEM 04"},
+      {sku:"Atroveran HOT Sache",                loja:"Cruzília",  fis:9,  sis:0,  dif:"+9",   unit:10.13, imp:91.17,  tipo:"Ajuste de estoque",    status:"Divergente",sem:"SEM 02"}
+    ],
+    causas_anl:{
+      nivel:"melhora", acuracia:"27,8%", meta:"60%",
+      items:[
+        {cls:"ca-positivo",pri:"MELHORA",pb:"pb-P",titulo:"Acurácia sobe de 3,8% → 27,8% (+24pp vs Abril)",
+         loja:"Toda a Rede",lcor:"#10B981",
+         desc:"Maio 2026 confirma virada real: acurácia +24 pontos, impacto caiu R$ 3.755 (-40,5%), divergências reduziram 117 (vs 253 em Abril). A planilha real confirma 43 ajustes em 162 SKUs. Tendência semanal consistente: SEM01 com 70 divergências → SEM04 com apenas 7.",
+         imps:[{i:"📈",l:"Melhora",v:"+24pp vs Abril"},{i:"💰",l:"Redução",v:"↓ R$ 3.755"},{i:"✅",l:"Ajustados",v:"43 de 162"}],
+         acao:"Manter práticas. Replicar processo de Cruzília (37%) nas demais lojas. Foco em Baependi (12,5%) e Matriz (23,1%) que têm menor índice."},
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",titulo:"Venda Não Baixada Persiste — 62 Ocorrências Reais (40,5%)",
+         loja:"Carrossel · Matriz",lcor:"#DC3545",
+         desc:"Com 62 ocorrências confirmadas na planilha (R$ 1.388,64), 'ajuste de venda não baixada' domina Maio. ALGINAC 1000 (Matriz, +6un, R$ 339,66) lidera. A melhora veio de ajustes manuais — a integração PDV-ERP não foi corrigida. Sem resolução da causa raiz, o ciclo se repete em Junho.",
+         imps:[{i:"🔄",l:"Reincidência",v:"2º mês consecutivo"},{i:"⚠️",l:"Ocorrências",v:"62 (R$ 1.388,64)"},{i:"🔗",l:"PDV-ERP",v:"Não resolvido"}],
+         acao:"Escalar para TI com prazo de 15 dias. Configurar alerta diário de vendas sem baixa de estoque para conferência manual."},
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",titulo:"Carrossel — R$ 2.737,81 (49,6% do Impacto Total Real)",
+         loja:"Carrossel",lcor:"#DC3545",
+         desc:"Carrossel: 67 SKUs auditados, 49 divergentes (73,1%), apenas 18 ajustados (26,9%). ABS Geriátrico Dry reincide pelo 2º mês (+21un, R$ 251,79). Paleta Minne Mouse Rose novo caso de erro NF (+2un, R$ 161,58). Melhora de R$ 5.544→R$ 2.737 (-50,6%) é positiva mas ainda insuficiente.",
+         imps:[{i:"🏪",l:"Participação",v:"49,6% do total"},{i:"🔄",l:"ABS Geriátrico",v:"Reincide — 2 meses"},{i:"💰",l:"Impacto real",v:"R$ 2.737,81"}],
+         acao:"Supervisor de inventário dedicado na Carrossel. Auditoria presencial semanal. Mini-auditorias diárias nos top 15 SKUs. Investigar ABS Geriátrico desde Março."},
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",titulo:"Permanganato Potássio CRV — +105 Unidades Sistêmicas",
+         loja:"CRV",lcor:"#DC3545",
+         desc:"Permanganato de Potássio 100MG CRV: +105 unidades no sistema vs físico (R$ 140,70). Magnitude indica falha estrutural de cadastro: provável erro de unidade de medida (caixas vs comprimidos) ou fator de conversão incorreto. CRV tem 0% de faltas e 100% de sobras — padrão sistemático de entradas sem conferência física.",
+         imps:[{i:"📦",l:"Excedente",v:"+105 unidades"},{i:"🔍",l:"Causa suspeita",v:"Unidade de medida"},{i:"🏪",l:"CRV",v:"0 faltas / 14 sobras"}],
+         acao:"Investigar cadastro do produto imediatamente. Contagem física tripla com supervisor. Auditar todos produtos MG/ML nas 6 lojas se confirmar erro de parametrização."},
+        {cls:"ca-alto",pri:"ALTO",pb:"pb-A",titulo:"51 Ajustes de Estoque — R$ 1.860,88 (Maior Impacto por Tipo)",
+         loja:"Toda a Rede",lcor:"#F59E0B",
+         desc:"51 ocorrências de ajuste de estoque sem investigação da causa raiz totalizam R$ 1.860,88 — maior impacto financeiro por tipo em Maio. ENTRESTO 200MG (+3un, R$ 126,84) e Pressat 2,5mg (-4un, R$ 126,16) entre os casos mais críticos. Indica cultura de 'ajuste rápido' ao invés de análise.",
+         imps:[{i:"✏️",l:"Ajustes manuais",v:"51 ocorrências"},{i:"💰",l:"Maior impacto/tipo",v:"R$ 1.860,88"},{i:"📋",l:"Rastreabilidade",v:"Comprometida"}],
+         acao:"Aprovação formal do supervisor para qualquer ajuste manual (Semana 1 de Junho). Log de justificativa obrigatório. Auditoria retroativa dos 51 casos para identificar padrões."},
+        {cls:"ca-alto",pri:"ALTO",pb:"pb-A",titulo:"14 Erros de NF em Maio — Aumentou vs Abril (9 → 14)",
+         loja:"Carrossel · Matriz · CRV",lcor:"#F59E0B",
+         desc:"Erros de NF aumentaram de 9 (Abril) para 14 (Maio), impacto R$ 1.086,34. ABS Geriátrico reincide novamente. Paleta Minne Mouse Rose (R$ 161,58) e Kit Cicatricure Matriz (-5un, R$ 137,45) são novos casos. Aumento de erros NF enquanto outros tipos caem = deterioração no processo de recebimento.",
+         imps:[{i:"🧾",l:"Erros NF",v:"14 (+5 vs Abril)"},{i:"💰",l:"Impacto",v:"R$ 1.086,34"},{i:"📈",l:"Tendência",v:"Piorando"}],
+         acao:"Conferência dupla obrigatória na entrada de NF em Carrossel e Matriz (Semana 1 de Junho). Checklist de recebimento com foto. Treinamento dos responsáveis pelo recebimento."},
+        {cls:"ca-medio",pri:"MÉDIO",pb:"pb-M",titulo:"Meta 60% de Maio Não Atingida — Real: 27,8%",
+         loja:"Toda a Rede",lcor:"#7C3AED",
+         desc:"Meta definida pós-Abril era 60%. Resultado real: 27,8% (+24pp). Tendência semanal forte: SEM01→SEM04 queda de 70→7 divergências (-90%). Cruzília (36,7%) e CRV (35,7%) são os melhores exemplos. Para 60% em Junho: ajustar ao menos 97 dos 162 SKUs — mais que o dobro do ritmo atual.",
+         imps:[{i:"🎯",l:"Meta Maio",v:"60% — não atingida"},{i:"📈",l:"Real",v:"27,8% (+24pp)"},{i:"⭐",l:"Melhor",v:"Cruzília — 36,7%"}],
+         acao:"Metas por loja para Junho: Carrossel 40%, Matriz 50%, demais 60%. Ranking semanal compartilhado com todos os gerentes. Reunião sexta-feira com reporte ao gestor."}
+      ],
+      metas:[
+        {v:"27,8%",c:"#F59E0B",l:"Acurácia Real — Maio 2026",ar:"→"},
+        {v:"60%",  c:"#F59E0B",l:"Meta — Junho 2026",         ar:"→"},
+        {v:"90%+", c:"#10B981",l:"Meta — Julho/Agosto 2026",  ar:""}
+      ]
+    }
+  },
+
+  abril: {
+    meta:{ mes:"Abril 2026", gerado:"30/04/2026",
+      skus:263, div:253, ajust:10, ok:0, imp:9277.91,
+      faltas:56, sobras:197, acuracia:3.8, pendentes:253 },
+    lojas:[
+      {n:"Carrossel",skus:141,div:136,ajust:5, ok:0,faltas:28,sobras:108,imp:5544.47,cor:"#E74C3C"},
+      {n:"Matriz",   skus:51, div:49, ajust:2, ok:0,faltas:10,sobras:39, imp:1686.91,cor:"#1A3260"},
+      {n:"Cruzília", skus:17, div:15, ajust:2, ok:0,faltas:3, sobras:12, imp:838.67, cor:"#00B8AF"},
+      {n:"Baependi", skus:24, div:24, ajust:0, ok:0,faltas:5, sobras:19, imp:486.45, cor:"#F59E0B"},
+      {n:"Cristina", skus:17, div:17, ajust:0, ok:0,faltas:4, sobras:13, imp:417.64, cor:"#7C3AED"},
+      {n:"CRV",      skus:13, div:12, ajust:1, ok:0,faltas:6, sobras:6,  imp:303.77, cor:"#64748B"}
+    ],
+    sems:{ labels:["SEM 01","SEM 02","SEM 03","SEM 04","SEM 05"],
+           divs:[50,62,55,56,30], imps:[1900,2310,2050,1680,1337], ajust:[0,2,3,3,2] },
+    tipos:[
+      {n:"Aj. venda não baixada",v:99, imp:3200,c:"#00B8AF"},
+      {n:"Ajuste de estoque",    v:55, imp:2100,c:"#1A3260"},
+      {n:"Divergência física",   v:40, imp:1800,c:"#DC3545"},
+      {n:"Divergência sistêmica",v:9,  imp:600, c:"#7C3AED"},
+      {n:"Erros de NF",          v:9,  imp:1487,c:"#DC3545"},
+      {n:"Falta física",         v:7,  imp:300, c:"#94A3B8"},
+      {n:"Uso e consumo",        v:6,  imp:200, c:"#64748B"},
+      {n:"Outros",               v:28, imp:390, c:"#94A3B8"}
+    ],
+    top15:[
+      {sku:"Tena Pants Noturna G/EG LV 165/14",    loja:"Carrossel",fis:0,  sis:11, dif:"-11", unit:65.63, imp:721.93,tipo:"Divergência sistêmica",   status:"Divergente",sem:"SEM 02"},
+      {sku:"Ninho Fases 1+ 800g",                  loja:"Carrossel",fis:0,  sis:21, dif:"-21", unit:28.86, imp:606.06,tipo:"Erro de compras CRV",     status:"Divergente",sem:"SEM 03"},
+      {sku:"Ácido Mandélico AM 10 Principia 30ml",  loja:"Cruzília", fis:0,  sis:10, dif:"-10", unit:47.99, imp:479.90,tipo:"NF de transferência errada",status:"Divergente",sem:"SEM 01"},
+      {sku:"ABS Geriátrico Dry Economics 20und",   loja:"Carrossel",fis:33, sis:0,  dif:"+33", unit:11.99, imp:395.67,tipo:"Erro de processo/entrada NF",status:"Divergente",sem:"SEM 02"},
+      {sku:"Bolsa Coletora Urina Especial 2000ml",  loja:"Carrossel",fis:0,  sis:57, dif:"-57", unit:5.63,  imp:320.91,tipo:"Código de produto errado", status:"Divergente",sem:"SEM 04"},
+      {sku:"Roupa Int. Tena Pants Not 16und",       loja:"Carrossel",fis:0,  sis:3,  dif:"-3",  unit:75.14, imp:225.42,tipo:"Aj. venda não baixada",   status:"Divergente",sem:"SEM 02"},
+      {sku:"Caju Hidratante Firma Corpo",           loja:"Carrossel",fis:3,  sis:0,  dif:"+3",  unit:72.70, imp:218.10,tipo:"Aj. venda não baixada",   status:"Divergente",sem:"SEM 01"},
+      {sku:"Pinça Solingen Folha Agulha Dourada",   loja:"Carrossel",fis:20, sis:0,  dif:"+20", unit:9.97,  imp:199.40,tipo:"Ajuste de estoque",       status:"Divergente",sem:"SEM 04"},
+      {sku:"Whey Protein Isolado Dux Chocolate",    loja:"Carrossel",fis:1,  sis:0,  dif:"+1",  unit:179.00,imp:179.00,tipo:"Aj. venda não baixada",   status:"Divergente",sem:"SEM 03"},
+      {sku:"AP Barba Proballl / Carga March 3",     loja:"Baependi", fis:8,  sis:0,  dif:"+8",  unit:20.89, imp:167.12,tipo:"Divergência na entrada NF",status:"Divergente",sem:"SEM 02"},
+      {sku:"SH J&J Baby Reg 200ml",                loja:"Cristina", fis:0,  sis:10, dif:"-10", unit:15.07, imp:150.70,tipo:"Erro de entrada NF",       status:"Divergente",sem:"SEM 01"},
+      {sku:"Cloridrato de Loperamida 2G 4CPR",     loja:"Carrossel",fis:86, sis:0,  dif:"+86", unit:0.38,  imp:32.68, tipo:"Entrada de NF errada",     status:"Divergente",sem:"SEM 03"},
+      {sku:"Des Secret Gel Berry 45g",              loja:"Cristina", fis:0,  sis:5,  dif:"-5",  unit:14.69, imp:73.47, tipo:"Erro de entrada NF",       status:"Divergente",sem:"SEM 02"},
+      {sku:"Kinder Joy",                            loja:"Carrossel",fis:0,  sis:12, dif:"-12", unit:6.91,  imp:82.94, tipo:"Entrada de NF errada",     status:"Divergente",sem:"SEM 01"},
+      {sku:"Esmalte Risque Renda 8ml",              loja:"Carrossel",fis:0,  sis:4,  dif:"-4",  unit:3.94,  imp:15.76, tipo:"Erro de entrada NF",       status:"Divergente",sem:"SEM 04"}
+    ],
+    causas_anl:{
+      nivel:"critico",acuracia:"3,8%",meta:"60%",
+      items:[
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",titulo:"Colapso Sistêmico — Todas as 6 Lojas Abaixo de 12% de Acurácia",
+         loja:"Toda a Rede",lcor:"#DC3545",
+         desc:"Abril 2026: pior mês registrado. Nenhuma loja atingiu 12% de acurácia. Carrossel: 3,5% (136/141 divergentes), Cristina e Baependi: 0,0%. 253 divergências em 263 SKUs = 96,2% de erro. Falha estrutural sistêmica — não eventos isolados. Este mês serviu como alarme para reestruturação imediata dos processos.",
+         imps:[{i:"💰",l:"Impacto total",v:"R$ 9.277,91"},{i:"📦",l:"SKUs divergentes",v:"253 de 263 (96,2%)"},{i:"📉",l:"Acurácia rede",v:"3,8%"}],
+         acao:"Ações emergenciais implementadas geraram melhora de 24pp em Maio. Manter e intensificar o processo. Meta: 60% em Junho."},
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",titulo:"99 Ocorrências de Venda Não Baixada — Causa Raiz Principal",
+         loja:"Carrossel · Matriz",lcor:"#DC3545",
+         desc:"Com 99 ocorrências (39,1%), 'venda não baixada' dominou Abril. Falha na integração PDV-ERP onde vendas são registradas mas estoque não é debitado. Persistiu em Maio (62 ocorrências) — causa raiz não resolvida. Carrossel concentra maioria dos casos.",
+         imps:[{i:"⚠️",l:"Ocorrências",v:"99 (39,1%)"},{i:"🏪",l:"Concentração",v:"Carrossel"},{i:"🔗",l:"Causa técnica",v:"PDV-ERP — persiste em Maio"}],
+         acao:"Integração PDV-ERP precisa ser corrigida urgentemente. Ações de Maio (ajustes manuais) são paliativas. Resolução definitiva necessária para Junho."},
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",titulo:"9 Erros de NF — R$ 1.487,53 (Problema que Cresceu em Maio)",
+         loja:"Carrossel · Cruzília · Cristina · Baependi",lcor:"#DC3545",
+         desc:"9 erros de NF em Abril: Ácido Mandélico Cruzília (-10un, R$ 479,90), ABS Geriátrico Carrossel (+33un, R$ 395,67). Cristina: SH J&J Baby (-10un, R$ 150,70) e Des Secret Gel (-5un, R$ 73,47). Baependi: Carga March 3 (+8un, R$ 167,12). ALERTA: aumentou para 14 erros em Maio.",
+         imps:[{i:"🧾",l:"Erros NF Abril",v:"9 (R$ 1.487,53)"},{i:"📈",l:"Tendência",v:"Cresceu → 14 em Maio"},{i:"🏪",l:"Mais afetada",v:"Carrossel (5 casos)"}],
+         acao:"Conferência dupla na entrada de NF. Processo não foi suficientemente corrigido — aumentou em Maio. Requer atenção redobrada em Junho."},
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",titulo:"Carrossel — R$ 5.544,47 (59,8% do Impacto da Rede)",
+         loja:"Carrossel",lcor:"#DC3545",
+         desc:"141 SKUs, 136 divergências (96,5%), R$ 5.544,47. Top casos: Tena Pants Noturna (-11un, R$ 721,93), Ninho Fases 1+ (-21un, R$ 606,06), Bolsa Coletora Urina (-57un, R$ 320,91). Em Maio reduziu para R$ 2.737,81 (-50,6%) — melhora real mas ainda é a maior concentração de risco da rede.",
+         imps:[{i:"🏪",l:"Impacto Abril",v:"R$ 5.544,47 (59,8%)"},{i:"📉",l:"Melhora Maio",v:"R$ 2.737,81 (-50,6%)"},{i:"⚠️",l:"Situação",v:"Crítica → melhora parcial"}],
+         acao:"As ações de Maio produziram resultados. Manter supervisão intensiva. 49,6% do impacto ainda concentrado na Carrossel em Maio."},
+        {cls:"ca-alto",pri:"ALTO",pb:"pb-A",titulo:"55 Ajustes Manuais Sem Rastreabilidade (21,7%) — Padrão Persistente",
+         loja:"Toda a Rede",lcor:"#F59E0B",
+         desc:"55 ajustes manuais sem justificativa em Abril (continuaram como 51 em Maio). Operadores resolvem divergências manualmente sem investigar causa raiz. ENTRESTO e Pressat que aparecem em Maio como ajuste de estoque provavelmente originaram de falhas não investigadas em Abril.",
+         imps:[{i:"✏️",l:"Ajustes Abril",v:"55"},{i:"✏️",l:"Ajustes Maio",v:"51 (persiste)"},{i:"💰",l:"Impacto Maio",v:"R$ 1.860,88"}],
+         acao:"Política de 'zero ajuste sem investigação'. Aprovação formal e log obrigatório. Implementar em Junho para quebrar o ciclo."},
+        {cls:"ca-alto",pri:"ALTO",pb:"pb-A",titulo:"40 Divergências Físicas — Processo de Contagem Inconsistente",
+         loja:"Carrossel · CRV · Baependi",lcor:"#F59E0B",
+         desc:"40 divergências físicas (15,8%) indicam produto existente mas em quantidade diferente do sistema. Falhas no processo de contagem cíclica: produtos contados duas vezes, fora do lugar, ou embalagens múltiplas contadas como unitárias. Em Maio reduziu para 24 ocorrências — melhora mas persiste.",
+         imps:[{i:"📦",l:"Div. físicas Abril",v:"40 (15,8%)"},{i:"📉",l:"Em Maio",v:"24 (-40%)"},{i:"📍",l:"Causa",v:"Contagem inconsistente"}],
+         acao:"Padronizar contagem cíclica com checklist. Critério claro embalagem vs unitário. Contagem dupla para produtos acima de R$ 50,00."}
+      ],
+      metas:[
+        {v:"3,8%", c:"#DC3545",l:"Acurácia Real — Abril 2026",ar:"→"},
+        {v:"27,8%",c:"#F59E0B",l:"Resultado Real — Maio 2026",ar:"→"},
+        {v:"60%",  c:"#10B981",l:"Meta — Junho 2026",         ar:""}
+      ]
+    }
+  }
+,
+  // ══════════════════════════════════════════════════════════
+  // JUNHO 2026 — DADOS REAIS (Auditoria_Junho_2026_4.xlsx)
+  // ══════════════════════════════════════════════════════════
+  junho: {
+    meta:{ mes:"Junho 2026", gerado:"30/06/2026",
+      skus:79, div:18, ajust:59, ok:2, imp:3586.26,
+      faltas:15, sobras:64, acuracia:77.2, pendentes:18 },
+    lojas:[
+      {n:"Carrossel",skus:26,div:2, ajust:23,ok:1,f:2, sob:24,imp:777.47, pct:92.3,cor:"#DC2626"},
+      {n:"Matriz",   skus:13,div:3, ajust:9, ok:1,f:2, sob:11,imp:884.49, pct:76.9,cor:"#1A3260"},
+      {n:"Cruzília", skus:19,div:0, ajust:19,ok:0,f:6, sob:13,imp:1034.29,pct:100.0,cor:"#00B4AD"},
+      {n:"CRV",      skus:6, div:6, ajust:0, ok:0,f:1, sob:5, imp:296.39, pct:0.0,  cor:"#D97706"},
+      {n:"Baependi", skus:4, div:0, ajust:4, ok:0,f:2, sob:2, imp:295.51, pct:100.0,cor:"#7C3AED"},
+      {n:"Cristina", skus:11,div:7, ajust:4, ok:0,f:2, sob:9, imp:298.11, pct:36.4, cor:"#64748B"}
+    ],
+    sems:{
+      labels:["SEM 01","SEM 02"],
+      divs:[15,3], imps:[2108.27,1477.99], ajust:[29,30]
+    },
+    tipos:[
+      {n:"Ajuste de estoque",          v:32,imp:1778.33,c:"#1A3260"},
+      {n:"Aj. venda não baixada",      v:20,imp:584.99, c:"#00B4AD"},
+      {n:"Sobra da distribuidora",     v:7, imp:593.63, c:"#D97706"},
+      {n:"Erro de entrada NF",         v:8, imp:386.47, c:"#DC2626"},
+      {n:"Divergência física",         v:6, imp:129.21, c:"#7C3AED"},
+      {n:"Divergência sistêmica",      v:4, imp:99.43,  c:"#64748B"},
+      {n:"Uso e consumo",              v:2, imp:14.20,  c:"#94A3B8"}
+    ],
+    top15:[
+      {sku:"Vitamina D 50.000 4CPR",                  loja:"Cruzília",  fis:0,  sis:47, dif:-47,imp:379.29,unit:8.07,  tipo:"Ajuste de estoque",       status:"Ajustado",  sem:"SEM 02"},
+      {sku:"Flavenos 1000MG 36 Saches",               loja:"Matriz",    fis:4,  sis:2,  dif:2,  imp:278.40,unit:139.20,tipo:"Sobra da distribuidora",   status:"Ajustado",  sem:"SEM 01"},
+      {sku:"BRINQUEDOS LINHA MAX",                    loja:"CRV",       fis:4,  sis:0,  dif:4,  imp:169.00,unit:42.25, tipo:"Erro de entrada NF",       status:"Divergente",sem:"SEM 01"},
+      {sku:"Fralda Pampers Confort SEC M 70UND",      loja:"Cruzília",  fis:2,  sis:0,  dif:2,  imp:164.32,unit:82.16, tipo:"Ajuste de estoque",        status:"Ajustado",  sem:"SEM 02"},
+      {sku:"GLYXAMBI 25+5MG 30CPR",                  loja:"Matriz",    fis:4,  sis:3,  dif:1,  imp:145.07,unit:145.07,tipo:"Ajuste de estoque",        status:"Ajustado",  sem:"SEM 01"},
+      {sku:"Gel P/ Sobrancelhas Girls Club Blow 8,2G",loja:"Carrossel", fis:20, sis:0,  dif:20, imp:134.40,unit:6.72,  tipo:"Aj. venda não baixada",    status:"Ajustado",  sem:"SEM 02"},
+      {sku:"SERETIDE 25MCG/125MCG SPR 120DS",         loja:"Baependi",  fis:2,  sis:4,  dif:-2, imp:115.72,unit:57.86, tipo:"Ajuste de estoque",        status:"Ajustado",  sem:"SEM 01"},
+      {sku:"Luva Neop Ciclismo/Muscular M BC0101BP",  loja:"Cruzília",  fis:1,  sis:0,  dif:1,  imp:105.90,unit:105.90,tipo:"Ajuste de estoque",        status:"Ajustado",  sem:"SEM 02"},
+      {sku:"Cloridrato de Ciclobenzaprina 10MG 30CPR",loja:"Matriz",    fis:21, sis:9,  dif:12, imp:100.68,unit:8.39,  tipo:"Sobra da distribuidora",   status:"Ajustado",  sem:"SEM 01"},
+      {sku:"CABO IPHONE LEVE-ME",                     loja:"Carrossel", fis:5,  sis:0,  dif:5,  imp:92.25, unit:18.45, tipo:"Aj. venda não baixada",    status:"Ajustado",  sem:"SEM 01"},
+      {sku:"SYMBICORT 6/200MCG 120DS",                loja:"Baependi",  fis:2,  sis:0,  dif:2,  imp:87.42, unit:43.71, tipo:"Ajuste de estoque",        status:"Ajustado",  sem:"SEM 01"},
+      {sku:"NORIPURUM ENDOVENSA C/5 AMPOLAS 5ML",     loja:"Carrossel", fis:2,  sis:1,  dif:1,  imp:78.75, unit:78.75, tipo:"Aj. venda não baixada",    status:"Ajustado",  sem:"SEM 02"},
+      {sku:"SH. DOVE MEN 400ML 2EM1 FORCA RESISTENTE",loja:"Cristina",  fis:3,  sis:0,  dif:3,  imp:73.71, unit:24.57, tipo:"Divergência sistêmica",    status:"Divergente",sem:"SEM 01"},
+      {sku:"Melhoral ADU 8 CPR",                      loja:"Carrossel", fis:18, sis:9,  dif:9,  imp:72.36, unit:8.04,  tipo:"Ajuste de estoque",        status:"Ajustado",  sem:"SEM 01"},
+      {sku:"Cetaconazol+Bet+Neomicina CR 30G",        loja:"Matriz",    fis:12, sis:1,  dif:11, imp:70.40, unit:6.40,  tipo:"Erro de entrada NF",       status:"Divergente",sem:"SEM 02"}
+    ],
+    causas_anl:{
+      nivel:"referencia", acuracia:"77,2%", meta:"90%",
+      items:[
+        {cls:"ca-positivo",pri:"RECORDE",pb:"pb-P",
+         titulo:"77,2% de Acurácia — Novo Recorde da Rede · Trajetória 3,8% → 27,8% → 77,2%",
+         loja:"Toda a Rede",lcor:"#059669",
+         desc:"Junho 2026 consolida a recuperação: 77,2% de acurácia (59 ajustados + 2 ok de 79 SKUs), impacto financeiro de R$ 3.586,26. A trajetória de 3 meses é expressiva: Abril 3,8% → Maio 27,8% → Junho 77,2%. Cruzília e Baependi atingiram 100% de ajuste. Carrossel chegou a 92,3% — resultado histórico para a maior loja da rede.",
+         imps:[{i:"📈",l:"Acurácia",v:"77,2% — recorde da rede"},{i:"💰",l:"Impacto",v:"R$ 3.586,26"},{i:"✅",l:"Ajustados",v:"61 de 79 SKUs (77,2%)"}],
+         acao:"Documentar e formalizar o processo atual como padrão GSTOCK. A meta de 90% em Julho é plenamente atingível se CRV e Cristina resolverem suas pendências."},
+        {cls:"ca-positivo",pri:"DESTAQUE",pb:"pb-P",
+         titulo:"Cruzília 100% · Baependi 100% · Carrossel 92,3% — Evolução histórica",
+         loja:"Cruzília · Baependi · Carrossel",lcor:"#059669",
+         desc:"Cruzília atingiu 100% com 19 SKUs ajustados (R$ 1.034,29), incluindo a Vitamina D 50.000 (Δ-47un, R$379,29) que era um dos maiores impactos do mês. Baependi manteve 100% pelo 2º mês. Carrossel chegou a 92,3% (24 de 26 ajustados, R$777,47) — a maior queda de impacto absoluto da rede em relação a Abril (R$ 5.544 → R$ 777).",
+         imps:[{i:"🏆",l:"100% Cruzília",v:"19/19 SKUs · R$ 1.034,29"},{i:"🏆",l:"100% Baependi",v:"4/4 SKUs · R$ 295,51"},{i:"⭐",l:"Carrossel",v:"92,3% · de R$5.544 em Abril"}],
+         acao:"Usar Cruzília, Baependi e Carrossel como modelos para CRV e Cristina. Compartilhar processo nas reuniões semanais de gestão."},
+        {cls:"ca-critico",pri:"URGENTE",pb:"pb-U",
+         titulo:"CRV — 0% de Acurácia pelo 2º Mês Consecutivo · 6 Divergências · R$ 296,39",
+         loja:"CRV",lcor:"#DC2626",
+         desc:"CRV persiste com 0% de acurácia em Junho (6 de 6 SKUs divergentes): BRINQUEDOS LINHA MAX (erro NF, +4un, R$169,00) é o maior caso. Também aparecem CRV com divergências sistêmicas e físicas. Este é o 2º mês consecutivo com 0% — indica problema estrutural no processo de recebimento desta loja que não foi endereçado após as recomendações de Maio.",
+         imps:[{i:"🔴",l:"CRV acurácia",v:"0,0% — 2º mês consecutivo"},{i:"📦",l:"Divergências",v:"6 de 6 SKUs (100%)"},{i:"💰",l:"Impacto",v:"R$ 296,39"}],
+         acao:"AÇÃO IMEDIATA: auditoria presencial no CRV com gestor regional presente. Mapear o fluxo completo de recebimento. Investigar BRINQUEDOS LINHA MAX — produto que aparece todo mês com erro de NF."},
+        {cls:"ca-critico",pri:"ALTO",pb:"pb-A",
+         titulo:"Cristina — 36,4% de Ajuste · 7 Divergências Abertas · R$ 298,11",
+         loja:"Cristina",lcor:"#DC2626",
+         desc:"Cristina ajustou apenas 4 de 11 SKUs (36,4%), com 7 divergências abertas somando R$ 298,11. O SH. Dove Men (divergência sistêmica, +3un, R$73,71) é o maior caso pendente. A Cristina teve evolução entre Abril (0%) e Maio (22,2%), mas regrediu em Junho. Necessita atenção gerencial específica.",
+         imps:[{i:"📋",l:"Cristina",v:"36,4% · 4 de 11 ajustados"},{i:"💰",l:"Pendente",v:"R$ 298,11 em aberto"},{i:"🔄",l:"Tendência",v:"Regrediu vs Maio (22% → 36%)"}],
+         acao:"Reunião com gerente da Cristina para identificar o gargalo. Verificar se as divergências sistêmicas têm origem em cadastro de produto. Priorizar resolução até SEM 01 de Julho."},
+        {cls:"ca-alto",pri:"ATENÇÃO",pb:"pb-A",
+         titulo:"32 Ajustes de Estoque Sem Rastreabilidade — R$ 1.778,33 (Maior Impacto por Tipo)",
+         loja:"Toda a Rede",lcor:"#D97706",
+         desc:"'Ajuste de estoque' continua sendo o tipo com maior impacto (R$1.778,33 / 49,6% do total financeiro). Vitamina D 50.000 (Cruzília, Δ-47un, R$379,29) e Flavenos 1000MG (Matriz, +2un, R$278,40) são os maiores casos. Embora a maioria tenha sido ajustada, o volume de 32 ocorrências indica que ajustes manuais ainda são a principal forma de correção — a causa raiz não está sendo eliminada.",
+         imps:[{i:"✏️",l:"Ajustes estoque",v:"32 ocorrências"},{i:"💰",l:"Maior impacto/tipo",v:"R$ 1.778,33 (49,6%)"},{i:"📋",l:"Rastreabilidade",v:"Ainda comprometida"}],
+         acao:"Implementar definitivamente o log de causa obrigatório para todo ajuste de estoque. Analisar os 32 casos para identificar padrões e eliminar as origens recorrentes."},
+        {cls:"ca-alto",pri:"ATENÇÃO",pb:"pb-A",
+         titulo:"Sobra da Distribuidora — Novo Tipo Identificado · 7 Ocorrências · R$ 593,63",
+         loja:"Matriz · Cruzília",lcor:"#D97706",
+         desc:"Em Junho aparece pela primeira vez o tipo 'Sobra da distribuidora' com 7 ocorrências e R$ 593,63 de impacto. Flavenos 1000MG (Matriz, +2un, R$278,40) e Cloridrato de Ciclobenzaprina (Matriz, +12un, R$100,68) são os maiores casos. Este tipo indica que o fornecedor/distribuidora está entregando quantidades diferentes do pedido — problema externo que precisa de gestão específica.",
+         imps:[{i:"🆕",l:"Novo tipo",v:"Sobra da distribuidora"},{i:"💰",l:"Impacto",v:"R$ 593,63 (7 ocorrências)"},{i:"🏪",l:"Concentração",v:"Matriz e Cruzília"}],
+         acao:"Criar processo de conferência da quantidade recebida vs NF do fornecedor. Acionar o setor de compras para contestar as sobras com a distribuidora. Registrar as ocorrências para histórico de auditoria."},
+        {cls:"ca-positivo",pri:"META",pb:"pb-P",
+         titulo:"Meta 90% em Julho é Atingível — CRV é o Único Gargalo Crítico",
+         loja:"Toda a Rede",lcor:"#059669",
+         desc:"A rede está a 12,8pp da meta de 90%. Se CRV resolver seus 6 SKUs divergentes e Cristina chegar a 70%, a rede ultrapassa 90% imediatamente. A trajetória de aceleração — +24pp (Maio) e +49,4pp (Junho) — confirma que o processo está ganhando maturidade. Julho com foco no CRV pode ser o mês em que a rede atinge a meta estratégica.",
+         imps:[{i:"🎯",l:"Falta para 90%",v:"12,8pp — apenas CRV + Cristina"},{i:"📈",l:"Aceleração",v:"+24pp (Maio) → +49,4pp (Junho)"},{i:"⭐",l:"Lojas no alvo",v:"4 de 6 já acima de 75%"}],
+         acao:"Concentrar 100% dos esforços de Julho no CRV (auditoria presencial) e Cristina (plano de recuperação). Se essas 2 lojas chegarem a 70%, a rede bate 90%."}
+      ],
+      metas:[
+        {v:"77,2%",c:"#059669",l:"Acurácia Real — Junho 2026",ar:"→"},
+        {v:"90%",  c:"#059669",l:"Meta — Julho 2026",          ar:"→"},
+        {v:"95%+", c:"#059669",l:"Meta — Agosto 2026",         ar:""}
+      ]
+    }
+  }
+};
+
+// ════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════
+let month = 'maio';
+let D = DB.maio;
+let lChart=null, fChart=null, sChart=null, tChart=null;
+const fmt = (v,d=2)=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pCol = p => p>=50?'#10B981':p>=30?'#F59E0B':'#DC3545';
+
+// ════════════════════════════════════════════════════════════════════
+// TICKER
+// ════════════════════════════════════════════════════════════════════
+function buildTicker(){
+  const alerts = month==='junho' ? [
+        {t:"RECORDE", tc:"#059669",txt:"Acurácia da rede em Junho",    v:"77,2% — novo recorde histórico"},
+    {t:"DESTAQUE",tc:"#059669",txt:"Cruzília 100% · Baependi 100% · Carrossel 92,3%",v:"3 lojas no topo"},
+    {t:"URGENTE", tc:"#DC2626",txt:"CRV — 0% pelo 2º mês consecutivo",v:"6 divergências · R$ 296,39"},
+    {t:"ATENÇÃO", tc:"#D97706",txt:"Cristina — 36,4% de ajuste",      v:"7 divergências abertas"},
+    {t:"META",    tc:"#059669",txt:"Faltam apenas 12,8pp para 90%",   v:"CRV é o único gargalo crítico"},
+    {t:"INFO",    tc:"#1A3260",txt:"Impacto financeiro Junho",         v:"R$ 3.586,26 · 79 SKUs auditados"},
+  ] : month==='maio' ? [
+    {t:"CRÍTICO",tc:"#DC3545",txt:"Carrossel — 49,6% do impacto da rede",v:"R$ 2.737,81"},
+    {t:"ALERTA", tc:"#F59E0B",txt:"Permanganato CRV — excedente sistêmico",v:"Δ +105 unidades"},
+    {t:"ATENÇÃO",tc:"#7C3AED",txt:"ABS Geriátrico — reincidência 2º mês",v:"R$ 251,79"},
+    {t:"URGENTE",tc:"#DC3545",txt:"PDV-ERP — causa raiz não resolvida",v:"62 ocorrências venda não baixada"},
+    {t:"INFO",   tc:"#1A3260",txt:"Acurácia da rede",v:"27,8% — meta de 60% não atingida"},
+    {t:"META",   tc:"#10B981",txt:"Cruzília — melhor loja",v:"36,7% de ajuste"},
+  ] : [
+    {t:"CRÍTICO",tc:"#DC3545",txt:"Todas as 6 lojas em nível crítico",v:"Acurácia abaixo de 12%"},
+    {t:"URGENTE",tc:"#DC3545",txt:"Carrossel — 59,8% do impacto",v:"R$ 5.544,47"},
+    {t:"ALERTA", tc:"#F59E0B",txt:"Tena Pants Noturna — maior divergência",v:"R$ 721,93"},
+    {t:"INFO",   tc:"#1A3260",txt:"99 ocorrências de venda não baixada",v:"39,1% do total"},
+    {t:"META",   tc:"#10B981",txt:"Meta de acurácia Maio 2026",v:"60%"},
+  ];
+  const all=[...alerts,...alerts];
+  document.getElementById('tkInner').innerHTML=all.map(a=>
+    `<span class="tk-item"><span class="tk-tag" style="background:${a.tc}">${a.t}</span>${a.txt} — <strong>${a.v}</strong></span>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// COMPARATIVO BANNER
+// ════════════════════════════════════════════════════════════════════
+function buildBanner(){
+  const M=DB.maio.meta, A=DB.abril.meta, J=DB.junho?DB.junho.meta:null;
+  const ref = month==='junho' && J ? {prev:M, cur:J, prevLbl:'Maio', curLbl:'Junho'} : {prev:A, cur:M, prevLbl:'Abril', curLbl:'Maio'};
+  const items=[
+    {l:"SKUs Auditados",    va:ref.prev.skus,     vm:ref.cur.skus,     up:false},
+    {l:"Divergências",      va:ref.prev.div,      vm:ref.cur.div,      up:false},
+    {l:"Acurácia da Rede",  va:ref.prev.acuracia+'%', vm:ref.cur.acuracia+'%', up:true},
+    {l:"Impacto Financeiro",va:'R$'+fmt(ref.prev.imp,0), vm:'R$'+fmt(ref.cur.imp,0), up:false},
+    {l:"Itens Ajustados",   va:ref.prev.ajust,    vm:ref.cur.ajust,    up:true},
+    {l:"Faltas",            va:ref.prev.faltas,   vm:ref.cur.faltas,   up:false},
+  ];
+  const t=document.getElementById('cbTitle'); if(t) t.textContent='📊 '+ref.prevLbl+' vs '+ref.curLbl+' 2026';
+  document.getElementById('cbItems').innerHTML=items.map((it,i)=>`
+    ${i>0?'<div class="cbsep"></div>':''}
+    <div class="cb-item">
+      <div class="cb-lbl">${it.l}</div>
+      <div class="cb-vals">
+        <span class="v-abr">${it.va}</span>
+        <span class="carrow ${it.up?'ca-pos':'ca-neg'}">${it.up?'↑':'↓'}</span>
+        <span class="v-mai">${it.vm}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// KPIs
+// ════════════════════════════════════════════════════════════════════
+function buildKPIs(){
+  const m=D.meta;
+  const A=DB.abril.meta;
+  const kpis=[
+    {lbl:"SKUs Auditados",    val:m.skus,     fv:v=>v.toString(),
+     sub:`${D.lojas.length} lojas · ${D.sems.labels.length} semanas`,
+     ico:"📦",ac:"#1A3260",ibg:"#E8EEF8",
+     delta:{v:"vs Abril: "+A.skus, up:false, neu:true}},
+    {lbl:"Divergências",      val:m.div,      fv:v=>v.toString(),
+     sub:`${m.pendentes} pendentes · ${m.ajust} ajustados`,
+     ico:"⚠️",ac:"#DC3545",ibg:"#FEE2E2",
+     delta:{v:"↓"+Math.round((1-m.div/A.div)*100)+"% vs Abril", up:true, neu:false}},
+    {lbl:"Acurácia da Rede",  val:m.acuracia, fv:v=>v.toFixed(1)+"%",
+     sub:`${m.ajust+m.ok} de ${m.skus} SKUs resolvidos`,
+     ico:"✅",ac:"#00B8AF",ibg:"#D4F5F3",
+     delta:{v:"↑+"+(m.acuracia-A.acuracia).toFixed(1)+"pp vs Abril", up:true, neu:false}},
+    {lbl:"Impacto Financeiro", val:m.imp,      fv:v=>"R$"+fmt(v,0),
+     sub:`Maior: ${D.lojas[0].n} R$${fmt(D.lojas[0].imp,0)}`,
+     ico:"💰",ac:"#F59E0B",ibg:"#FEF3C7",
+     delta:{v:"↓"+Math.round((1-m.imp/A.imp)*100)+"% vs Abril", up:true, neu:false}},
+  ];
+  document.getElementById('kpiRow').innerHTML=kpis.map((k,i)=>`
+    <div class="kpi" style="border-top-color:${k.ac};animation-delay:${i*.06}s">
+      <div class="kpi-ico" style="background:${k.ibg}">${k.ico}</div>
+      <div class="kpi-lbl">${k.lbl}</div>
+      <div class="kpi-val" style="color:${k.ac}">${k.fv(k.val)}</div>
+      <div class="kpi-sub">
+        <span class="badge ${k.delta.neu?'bg-nu':k.delta.up?'bg-up':'bg-dn'}">${k.delta.v}</span>
+        ${k.sub}
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// HORIZONTAL BARS
+// ════════════════════════════════════════════════════════════════════
+function buildBars(){
+  const maxI=Math.max(...D.lojas.map(l=>l.imp));
+  document.getElementById('barChart').innerHTML=D.lojas.map(l=>{
+    const pct=Math.round((l.ajust+l.ok)/l.skus*100);
+    const bw=(l.imp/maxI*100).toFixed(1);
+    return `<div class="hbar">
+      <div class="hbar-lbl">${l.n}</div>
+      <div class="hbar-track">
+        <div class="hbar-fill" style="width:${bw}%;background:${l.cor}">
+          <span>R$${fmt(l.imp,0)}</span>
+        </div>
+      </div>
+      <div class="hbar-pct" style="background:${pCol(pct)}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// DONUT SVG
+// ════════════════════════════════════════════════════════════════════
+function buildDonut(){
+  const tipos=D.tipos; const tot=tipos.reduce((s,t)=>s+t.v,0);
+  document.getElementById('tiposTotal').textContent=tot+' ocorrências';
+  const cx=59,cy=59,r=44,ri=27;
+  let ang=-Math.PI/2, paths='';
+  tipos.forEach(t=>{
+    const sl=(t.v/tot)*Math.PI*2;
+    const x1=cx+r*Math.cos(ang),y1=cy+r*Math.sin(ang);
+    const x2=cx+r*Math.cos(ang+sl),y2=cy+r*Math.sin(ang+sl);
+    const ix1=cx+ri*Math.cos(ang),iy1=cy+ri*Math.sin(ang);
+    const ix2=cx+ri*Math.cos(ang+sl),iy2=cy+ri*Math.sin(ang+sl);
+    const lg=sl>Math.PI?1:0;
+    paths+=`<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${lg},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${ix2.toFixed(1)},${iy2.toFixed(1)} A${ri},${ri} 0 ${lg},0 ${ix1.toFixed(1)},${iy1.toFixed(1)} Z" fill="${t.c}" stroke="#fff" stroke-width="2"/>`;
+    ang+=sl;
+  });
+  document.getElementById('donutSvg').innerHTML=paths+
+    `<text x="59" y="55" text-anchor="middle" font-size="15" font-weight="800" fill="#0F2040" font-family="Inter Tight">${tot}</text>
+     <text x="59" y="67" text-anchor="middle" font-size="8.5" fill="#94A3B8" font-family="Inter">ocorrências</text>`;
+  document.getElementById('donutLeg').innerHTML=tipos.map(t=>`
+    <div class="leg-row">
+      <div class="leg-dot" style="background:${t.c}"></div>
+      <div class="leg-nm">${t.n}</div>
+      <div class="leg-bg"><div class="leg-bf" style="width:${(t.v/tot*100).toFixed(0)}%;background:${t.c}"></div></div>
+      <div class="leg-n" style="color:${t.c}">${t.v}</div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PLACAR
+// ════════════════════════════════════════════════════════════════════
+function buildPlacar(){
+  document.getElementById('placar').innerHTML=D.lojas.map((l,i)=>{
+    const pct=Math.round((l.ajust+l.ok)/l.skus*100);
+    const col=pCol(pct);
+    return `<div class="p-row">
+      <div class="p-rk">${i+1}</div>
+      <div class="p-dot" style="background:${col}"></div>
+      <div class="p-info">
+        <div class="p-name">${l.n}</div>
+        <div class="p-sub">${l.faltas}↓ faltas · ${l.sobras}↑ sobras · ${l.div} div.</div>
+      </div>
+      <div class="p-pw"><div class="p-pf" style="width:${pct}%;background:${col}"></div></div>
+      <div class="p-pct" style="color:${col}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TREND PILLS
+// ════════════════════════════════════════════════════════════════════
+function buildPills(){
+  const s=D.sems;
+  const dr=Math.round((1-s.divs[s.divs.length-1]/s.divs[0])*100);
+  const ir=Math.round((1-s.imps[s.imps.length-1]/s.imps[0])*100);
+  const at=s.ajust.reduce((a,b)=>a+b,0);
+  [
+    {val:`↓${dr}%`,lbl:"redução divergências",col:"#DC3545"},
+    {val:`↓${ir}%`,lbl:"queda impacto R$",    col:"#1A3260"},
+    {val:`↑${at}`, lbl:"itens ajustados",      col:"#10B981"},
+  ].forEach((p,i)=>{
+    const el=document.getElementById('tpills');
+    if(i===0) el.innerHTML='';
+    el.innerHTML+=`<div class="tpill" style="background:${p.col}"><div class="tp-val">${p.val}</div><div class="tp-lbl">${p.lbl}</div></div>`;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LINE CHART
+// ════════════════════════════════════════════════════════════════════
+function buildLine(){
+  const ctx=document.getElementById('lineChart'); if(!ctx) return;
+  const s=D.sems;
+  if(lChart){lChart.data.labels=s.labels;lChart.data.datasets[0].data=s.divs;lChart.data.datasets[1].data=s.ajust;lChart.update('active');return;}
+  lChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:s.labels,datasets:[
+      {label:'Divergências',data:s.divs,borderColor:'#DC3545',backgroundColor:'rgba(220,53,69,.07)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#DC3545',borderWidth:2.5},
+      {label:'Ajustados',  data:s.ajust,borderColor:'#00B8AF',backgroundColor:'rgba(0,184,175,.07)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#00B8AF',borderWidth:2.5,borderDash:[5,3]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{ticks:{font:{size:10,family:'Inter'},color:'#94A3B8'},grid:{color:'#EFF3FB'},border:{display:false}},
+        y:{ticks:{font:{size:10,family:'Inter'},color:'#94A3B8'},grid:{color:'#EFF3FB'},border:{display:false},beginAtZero:true}
+      },
+      plugins:{legend:{display:true,position:'bottom',labels:{font:{size:10,family:'Inter'},color:'#64748B',boxWidth:12,boxHeight:3,usePointStyle:true,pointStyle:'rect'}},tooltip:{titleFont:{family:'Inter'},bodyFont:{family:'Inter'}}}
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TOP5
+// ════════════════════════════════════════════════════════════════════
+function buildTop5(){
+  document.getElementById('top5').innerHTML=D.top15.slice(0,5).map((s,i)=>{
+    const scc=s.status==='Ajustado'?'st-A':s.status==='Ok'?'st-O':'st-D';
+    const dif=parseFloat(s.dif);
+    return `<div class="t5-row">
+      <div class="t5-num" style="background:${D.lojas.find(l=>l.n===s.loja)?.cor||'#DC3545'}">${i+1}</div>
+      <div class="t5-sku">
+        <div class="t5-nm">${s.sku}</div>
+        <div class="t5-mt">${s.loja} · Δ${s.dif} · ${s.sem}</div>
+      </div>
+      <span class="t5-st ${scc}">${s.status}</span>
+      <div class="t5-imp" style="color:${dif<0?'#10B981':'#DC3545'}">R$${fmt(s.imp)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PAGE: LOJAS
+// ════════════════════════════════════════════════════════════════════
+function buildLojas(){
+  document.getElementById('lojaCards').innerHTML=D.lojas.map(l=>{
+    const pct=Math.round((l.ajust+l.ok)/l.skus*100);
+    const col=pCol(pct);
+    const stCls=pct>=50?'st-regular':pct>=25?'st-warning':'st-critico';
+    const stLbl=pct>=50?'✅ Regular':pct>=25?'⚠️ Atenção':'🔴 Crítico';
+    return `<div class="loja-card" style="border-top-color:${l.cor}">
+      <div class="loja-name" style="color:${l.cor}">${l.n}</div>
+      <div class="loja-kpis">
+        <div class="lk-item"><div class="lk-val">${l.skus}</div><div class="lk-lbl">SKUs</div></div>
+        <div class="lk-item"><div class="lk-val" style="color:#DC3545">${l.div}</div><div class="lk-lbl">Diverg.</div></div>
+        <div class="lk-item"><div class="lk-val" style="color:#10B981">${l.ajust}</div><div class="lk-lbl">Ajustados</div></div>
+        <div class="lk-item"><div class="lk-val" style="color:#DC3545">${l.faltas}</div><div class="lk-lbl">Faltas</div></div>
+        <div class="lk-item"><div class="lk-val" style="color:#1A3260">${l.sobras}</div><div class="lk-lbl">Sobras</div></div>
+        <div class="lk-item"><div class="lk-val">R$${fmt(l.imp,0)}</div><div class="lk-lbl">Impacto</div></div>
+      </div>
+      <div class="loja-bar">
+        <div class="lb-hdr">
+          <span class="lb-pct" style="color:${col}">${pct}% ajustado</span>
+          <span class="lb-lbl">${l.ajust+l.ok} de ${l.skus}</span>
+        </div>
+        <div class="lb-track"><div class="lb-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>
+      <span class="loja-status ${stCls}">${stLbl}</span>
+    </div>`;
+  }).join('');
+  // charts
+  setTimeout(()=>{
+    const fc=document.getElementById('faltasChart');
+    if(fc&&!fChart){
+      fChart=new Chart(fc,{type:'bar',data:{labels:D.lojas.map(l=>l.n),datasets:[
+        {label:'Faltas',data:D.lojas.map(l=>l.faltas),backgroundColor:'#DC3545',borderRadius:4},
+        {label:'Sobras',data:D.lojas.map(l=>l.sobras),backgroundColor:'#1A3260',borderRadius:4}
+      ]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#94A3B8'}},y:{grid:{color:'#EFF3FB'},ticks:{font:{size:10},color:'#94A3B8'}}},plugins:{legend:{display:true,position:'bottom',labels:{font:{size:10},boxWidth:10,boxHeight:3}}}}});
+    } else if(fChart){fChart.data.labels=D.lojas.map(l=>l.n);fChart.data.datasets[0].data=D.lojas.map(l=>l.faltas);fChart.data.datasets[1].data=D.lojas.map(l=>l.sobras);fChart.update();}
+    const sc=document.getElementById('semChart');
+    if(sc&&!sChart){
+      sChart=new Chart(sc,{type:'bar',data:{labels:D.sems.labels,datasets:[{label:'Impacto R$',data:D.sems.imps,backgroundColor:['#00B8AF','#1A3260','#DC3545','#F59E0B','#7C3AED'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#94A3B8'}},y:{grid:{color:'#EFF3FB'},ticks:{font:{size:10},color:'#94A3B8',callback:v=>'R$'+v.toLocaleString('pt-BR')}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'R$ '+c.raw.toLocaleString('pt-BR')}}}}});
+    } else if(sChart){sChart.data.labels=D.sems.labels;sChart.data.datasets[0].data=D.sems.imps;sChart.update();}
+  },80);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PAGE: SKUs
+// ════════════════════════════════════════════════════════════════════
+function buildSKUs(){
+  const stMap={Divergente:{cls:'st-D',lbl:'Divergente'},Ajustado:{cls:'st-A',lbl:'Ajustado'},Ok:{cls:'st-O',lbl:'Ok'}};
+  document.getElementById('skuTbl').innerHTML=`
+    <table class="tbl">
+      <thead><tr>
+        <th>#</th><th>SKU</th><th>Loja</th>
+        <th class="ctr">Físico</th><th class="ctr">Sistema</th>
+        <th class="ctr">Δ</th><th class="num">Custo Unit.</th>
+        <th class="num">Impacto</th><th>Tipo</th>
+        <th class="ctr">Status</th><th class="ctr">Semana</th>
+      </tr></thead>
+      <tbody>${D.top15.map((s,i)=>{
+        const lc=D.lojas.find(l=>l.n===s.loja)?.cor||'#DC3545';
+        const dv=parseFloat(s.dif); const sm=stMap[s.status]||stMap['Divergente'];
+        return `<tr>
+          <td><div style="width:21px;height:21px;border-radius:50%;background:${lc};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</div></td>
+          <td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${s.sku}</td>
+          <td><span style="font-size:10px;font-weight:700;color:${lc}">${s.loja}</span></td>
+          <td class="ctr" style="color:#475569">${s.fis}</td>
+          <td class="ctr" style="color:#475569">${s.sis}</td>
+          <td class="ctr" style="font-weight:700;color:${dv<0?'#10B981':'#DC3545'}">${s.dif}</td>
+          <td class="num" style="color:#64748B">R$${fmt(s.unit)}</td>
+          <td class="num" style="font-weight:800;color:${lc}">R$${fmt(s.imp)}</td>
+          <td style="font-size:10.5px;color:#475569;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.tipo}</td>
+          <td class="ctr"><span class="t5-st ${sm.cls}">${sm.lbl}</span></td>
+          <td class="ctr" style="font-size:10px;color:#94A3B8">${s.sem}</td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table>`;
+  setTimeout(()=>{
+    const tc=document.getElementById('tipoChart');
+    if(tc&&!tChart){
+      tChart=new Chart(tc,{type:'doughnut',data:{labels:D.tipos.map(t=>t.n),datasets:[{data:D.tipos.map(t=>t.v),backgroundColor:D.tipos.map(t=>t.c),borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw} (${Math.round(c.raw/D.tipos.reduce((s,t)=>s+t.v,0)*100)}%)`}}}}});
+    } else if(tChart){tChart.data.labels=D.tipos.map(t=>t.n);tChart.data.datasets[0].data=D.tipos.map(t=>t.v);tChart.data.datasets[0].backgroundColor=D.tipos.map(t=>t.c);tChart.update();}
+    const tot=D.tipos.reduce((s,t)=>s+t.v,0);
+    document.getElementById('tipoLeg').innerHTML=D.tipos.map(t=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="width:9px;height:9px;border-radius:50%;background:${t.c};flex-shrink:0"></div>
+        <div style="flex:1;font-size:10.5px;color:#475569">${t.n}</div>
+        <div style="font-weight:700;font-size:11px;color:${t.c}">${t.v}</div>
+        <div style="font-size:10px;color:#94A3B8;width:36px;text-align:right">${(t.v/tot*100).toFixed(1)}%</div>
+      </div>`).join('');
+  },80);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PAGE: CAUSAS RAIZ
+// ════════════════════════════════════════════════════════════════════
+function buildCausas(){
+  const ca=D.causas_anl;
+  const pcls={URGENTE:'pb-U',ALTO:'pb-A',MÉDIO:'pb-M',MEDIO:'pb-M',MELHORA:'pb-P'};
+  let h='';
+  // header
+  h+=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <div style="width:5px;height:46px;background:${month==='maio'?'#00B8AF':'#F59E0B'};border-radius:3px;flex-shrink:0"></div>
+    <div>
+      <div style="font-family:Inter Tight,sans-serif;font-size:18px;font-weight:800;color:var(--txt)">Análise de Causas Raiz — ${D.meta.mes}</div>
+      <div style="font-size:11.5px;color:var(--txt3);margin-top:2px">Diagnóstico independente baseado nos dados reais das planilhas · Para o gestor</div>
+    </div>
+    <div style="margin-left:auto">
+      <span class="badge ${month==='maio'?'bg-up':'bg-dn'}" style="font-size:12px;padding:6px 14px">
+        ${month==='maio'?`↑ Melhora vs Abril (+${(D.meta.acuracia-DB.abril.meta.acuracia).toFixed(1)}pp)`:'⚠️ Nível Crítico — '+D.meta.acuracia+'%'}
+      </span>
+    </div>
+  </div>`;
+  // sumário
+  h+=`<div class="cr-grid">`;
+  [
+    {v:D.meta.skus.toString(),l:"SKUs Auditados",c:month==='maio'?'#1A3260':'#DC3545'},
+    {v:D.meta.div.toString(),l:"Divergências",c:"#DC3545"},
+    {v:"R$"+fmt(D.meta.imp,0),l:"Impacto Financeiro",c:"#F59E0B"},
+    {v:D.meta.acuracia.toFixed(1)+"%",l:"Acurácia da Rede",c:month==='maio'?'#F59E0B':'#DC3545'},
+  ].forEach(s=>{
+    h+=`<div class="cr-kpi"><div class="cr-v" style="color:${s.c}">${s.v}</div><div class="cr-l">${s.l}</div></div>`;
+  });
+  h+=`</div>`;
+  // causas
+  h+=`<div class="sec-ttl">Diagnóstico — ${ca.items.length} causas identificadas</div>`;
+  ca.items.forEach((c,i)=>{
+    h+=`<div class="causa ${c.cls}" style="animation-delay:${i*.06}s">
+      <div class="causa-hdr">
+        <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
+          <span class="pri-badge ${pcls[c.pri]||'pb-M'}">${c.pri}</span>
+          <div class="causa-ttl">${c.titulo}</div>
+        </div>
+        <div class="causa-loja" style="background:${c.lcor}">${c.loja}</div>
+      </div>
+      <div class="causa-desc">${c.desc}</div>
+      <div class="causa-imps">${c.imps.map(im=>`<div class="causa-imp"><span>${im.i}</span><span style="color:var(--txt3)">${im.l}:</span><span style="font-weight:700"> ${im.v}</span></div>`).join('')}</div>
+      <div class="causa-acao"><div class="acao-lbl">✅ Ação Recomendada</div><div class="acao-txt">${c.acao}</div></div>
+    </div>`;
+  });
+  // metas
+  h+=`<div class="sec-ttl" style="margin-top:20px">Trajetória de Acurácia</div>`;
+  h+=`<div class="meta-g">`;
+  ca.metas.forEach(m=>{
+    h+=`<div class="meta-c"><div class="meta-v" style="color:${m.c}">${m.v}</div><div class="meta-ar" style="color:${m.c}">${m.ar}</div><div class="meta-l">${m.l}</div></div>`;
+  });
+  h+=`</div>`;
+  document.getElementById('causasContent').innerHTML=h;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════════
+function showTab(btn, pg){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  if(pg==='lojas') buildLojas();
+  if(pg==='skus') buildSKUs();
+  if(pg==='causas') buildCausas();
+}
+
+function setMonth(m){
+  month=m; D=DB[m]||DB.maio;
+  // buttons
+  document.getElementById('btnAbril').className='mbtn '+(m==='abril'?'m-abril':'off');
+  document.getElementById('btnMaio').className ='mbtn '+(m==='maio'?'m-maio':'off');
+  const bJ=document.getElementById('btnJunho'); if(bJ) bJ.className='mbtn '+(m==='junho'?'m-junho':'off');
+  // chip
+  const cl=document.getElementById('chipMesLbl');
+  const cm=document.getElementById('chipMes');
+  if(cl) cl.textContent=(m==='abril'?'Abril 2026':'Maio 2026');
+  if(cm) cm.className='chip '+(m==='abril'?'chip-a':'chip-b');
+  // banner
+  document.getElementById('cbanner').classList.add('on');
+  buildBanner();
+  // ticker & timestamp
+  buildTicker();
+  document.getElementById('lupdate').textContent='Dados: '+D.meta.gerado;
+  document.getElementById('ftTime').textContent=new Date().toLocaleTimeString('pt-BR');
+  // destroy charts
+  if(lChart){lChart.destroy();lChart=null;}
+  if(fChart){fChart.destroy();fChart=null;}
+  if(sChart){sChart.destroy();sChart=null;}
+  if(tChart){tChart.destroy();tChart=null;}
+  // rebuild
+  buildKPIs(); buildBars(); buildDonut(); buildPlacar(); buildPills(); buildTop5();
+  setTimeout(()=>buildLine(),80);
+  // reset sub-pages
+  document.getElementById('lojaCards').innerHTML='';
+  document.getElementById('skuTbl').innerHTML='';
+  document.getElementById('causasContent').innerHTML='';
+  // rebuild active sub-page
+  const ap=document.querySelector('.tab.active').getAttribute('onclick').match(/'(\w+)'/)[1];
+  if(ap==='lojas') buildLojas();
+  if(ap==='skus') buildSKUs();
+  if(ap==='causas') buildCausas();
+  // live interval
+  clearInterval(window._li);
+  if(m==='maio'||m==='junho') window._li=setInterval(()=>liveRefresh(),15000);
+}
+
+function toggleChip(c){ c.classList.toggle('off'); }
+
+function liveRefresh(){
+  if(month!=='maio') return;
+  const now=new Date();
+  document.getElementById('lupdate').textContent='Atualizado: '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function refreshNow(){
+  const btn=document.getElementById('rbtn');
+  btn.classList.add('spin'); setTimeout(()=>btn.classList.remove('spin'),700);
+  liveRefresh();
+}
+
+
+// ═══════════════════════════════════════════════════════
+// RELATÓRIO PAGE — dados reais das planilhas
+// ═══════════════════════════════════════════════════════
+const REL = {
+  lojas:[
+    {n:"Carrossel",skus:67,div:49,ajust:18,ok:0,f:14,sob:53,imp:2737.81,pct:26.9,cor:"#DC2626"},
+    {n:"Matriz",   skus:26,div:20,ajust:5, ok:1,f:9, sob:17,imp:1245.25,pct:23.1,cor:"#1A3260"},
+    {n:"Cruzília", skus:30,div:18,ajust:11,ok:1,f:2, sob:21,imp:691.61, pct:40.0,cor:"#00B4AD"},
+    {n:"CRV",      skus:14,div:9, ajust:5, ok:0,f:0, sob:14,imp:379.00, pct:35.7,cor:"#D97706"},
+    {n:"Baependi", skus:16,div:14,ajust:2, ok:0,f:2, sob:12,imp:320.43, pct:12.5,cor:"#6D28D9"},
+    {n:"Cristina", skus:9, div:7, ajust:2, ok:0,f:1, sob:8, imp:148.79, pct:22.2,cor:"#64748B"}
+  ],
+  sems:{labels:["SEM 01","SEM 02","SEM 03","SEM 04"],divs:[70,25,15,7],imps:[2093.85,1853.04,754.55,821.45],ajust:[0,22,13,8]},
+  top15:[
+    {sku:"ALGINAC 1000 C/30 COMP",                  loja:"Matriz",    fis:8,  sis:2,  dif:6,   imp:339.66,unit:56.61, tipo:"Aj. venda não baixada",status:"Divergente",sem:"SEM 02"},
+    {sku:"ABS Geriatrico Dry Economics 20UND",       loja:"Carrossel", fis:21, sis:0,  dif:21,  imp:251.79,unit:11.99, tipo:"Erro de entrada NF",   status:"Divergente",sem:"SEM 02"},
+    {sku:"Pulmosonic Sta Nebulizador Amarelo",       loja:"Carrossel", fis:1,  sis:0,  dif:1,   imp:184.21,unit:184.21,tipo:"Divergência física",   status:"Divergente",sem:"SEM 02"},
+    {sku:"Caramelo de Creatina Intelligence",        loja:"Carrossel", fis:0,  sis:2,  dif:-2,  imp:182.20,unit:91.10, tipo:"Divergência física",   status:"Divergente",sem:"SEM 01"},
+    {sku:"Paleta de Rosto Minne Mouse Rose",         loja:"Carrossel", fis:3,  sis:1,  dif:2,   imp:161.58,unit:80.79, tipo:"Erro de entrada NF",   status:"Divergente",sem:"SEM 04"},
+    {sku:"Permanganato de Potassio 100MG",           loja:"CRV",       fis:105,sis:0,  dif:105, imp:140.70,unit:1.34,  tipo:"Div. sistêmica",       status:"Divergente",sem:"SEM 01"},
+    {sku:"Kit Cicatricure Protetor Solar",           loja:"Matriz",    fis:1,  sis:6,  dif:-5,  imp:137.45,unit:27.49, tipo:"Erro de entrada NF",   status:"Ajustado",  sem:"SEM 02"},
+    {sku:"ENTRESTO 200MG 60CPR",                    loja:"Carrossel", fis:3,  sis:0,  dif:3,   imp:126.84,unit:42.28, tipo:"Ajuste de estoque",    status:"Ajustado",  sem:"SEM 03"},
+    {sku:"Pressat 2,5mg 30cpr",                     loja:"Carrossel", fis:10, sis:14, dif:-4,  imp:126.16,unit:31.54, tipo:"Ajuste de estoque",    status:"Ajustado",  sem:"SEM 04"},
+    {sku:"Ninho Fases 1+ 800G",                     loja:"Matriz",    fis:80, sis:83, dif:-3,  imp:118.26,unit:39.42, tipo:"Divergência física",   status:"Ok",        sem:"SEM 01"},
+    {sku:"Maxalt 10mg 2cpr",                        loja:"Carrossel", fis:9,  sis:13, dif:-4,  imp:117.04,unit:29.26, tipo:"Ajuste de estoque",    status:"Ajustado",  sem:"SEM 04"},
+    {sku:"Valda Friends Past Morango 25G",           loja:"Baependi",  fis:33, sis:3,  dif:30,  imp:111.00,unit:3.70,  tipo:"Ajuste de estoque",    status:"Divergente",sem:"SEM 02"},
+    {sku:"Colonia Desodorante Amburama 100ML",       loja:"Carrossel", fis:1,  sis:0,  dif:1,   imp:95.95, unit:95.95, tipo:"Ajuste de estoque",    status:"Divergente",sem:"SEM 01"},
+    {sku:"AMIORON 200MG 20CPR",                    loja:"Carrossel", fis:7,  sis:1,  dif:6,   imp:93.60, unit:15.60, tipo:"Erro de entrada NF",   status:"Ajustado",  sem:"SEM 04"},
+    {sku:"Atroveran HOT Sache",                     loja:"Cruzília",  fis:9,  sis:0,  dif:9,   imp:91.17, unit:10.13, tipo:"Ajuste de estoque",    status:"Divergente",sem:"SEM 02"}
+  ],
+  causas:[
+    {cls:"rc-pos",pri:"MELHORA",pc:"rcp-P",titulo:"Acurácia sobe 3,8% → 27,8% (+24pp) — Resultado Real da Planilha",loja:"Toda a Rede",lc:"#059669",
+     desc:"A planilha confirma: 43 itens ajustados de 162 auditados (26,5%), divergências caíram de 253 para 117 (−53,8%) e impacto reduziu R$ 3.755 (−40,5%). Tendência mais relevante: SEM01 com 70 divergências → SEM04 com apenas 7 (−90% em 4 semanas). Cruzília lidera com 40,0% de acurácia.",
+     m:[{i:"📈",l:"Melhora",v:"+24pp vs Abril"},{i:"💰",l:"Economia",v:"R$ 3.755 (−40,5%)"},{i:"✅",l:"Ajustados",v:"43 de 162 SKUs"}],
+     a:"Documentar e replicar processo de Cruzília (40%) nas demais lojas. Foco prioritário em Baependi (12,5%) e Matriz (23,1%)."},
+    {cls:"rc-crit",pri:"URGENTE",pc:"rcp-U",titulo:"62 Ocorrências de Venda Não Baixada — PDV-ERP Não Corrigido (2º Mês Consecutivo)",loja:"Carrossel · Matriz",lc:"#DC2626",
+     desc:"ALGINAC 1000 (Matriz, +6un, R$339,66) e ABS Geriátrico (Carrossel, +21un, R$251,79) lideram. Causa raiz técnica — falha na integração PDV-ERP — persiste desde Abril (99 ocorr.) em Maio (62 ocorr.). A melhora veio de ajustes manuais, não da resolução do problema estrutural.",
+     m:[{i:"🔄",l:"2º mês",v:"PDV-ERP não resolvido"},{i:"⚠️",l:"Ocorrências",v:"62 · R$ 1.388,64"},{i:"📉",l:"Vs Abril",v:"99 → 62 (−37,4%)"}],
+     a:"Escalar para TI com prazo máximo 15 dias. Configurar alerta diário de vendas sem baixa de estoque. Conferência manual semanal em Carrossel e Matriz."},
+    {cls:"rc-crit",pri:"URGENTE",pc:"rcp-U",titulo:"51 Ajustes Manuais Sem Rastreabilidade — R$ 1.860,88 (Maior Impacto por Tipo em Maio)",loja:"Toda a Rede",lc:"#DC2626",
+     desc:"'Ajuste de estoque' é o tipo com maior impacto (R$1.860,88 / 33,7% do total). ENTRESTO 200MG (+3un, R$126,84), Pressat 2,5mg (−4un, R$126,16), Valda Friends (+30un, R$111,00) e Colonia Amburama (+1un, R$95,95) são os casos mais críticos. Ajustes sem investigação mascaram a causa real e geram reincidência.",
+     m:[{i:"✏️",l:"Ajustes",v:"51 ocorrências"},{i:"💰",l:"Impacto",v:"R$ 1.860,88"},{i:"📋",l:"Rastreabilidade",v:"Comprometida"}],
+     a:"Aprovação formal do supervisor para qualquer ajuste manual (Semana 1 de Junho). Log de justificativa obrigatório. Auditoria retroativa dos 51 casos."},
+    {cls:"rc-alto",pri:"ALTO",pc:"rcp-A",titulo:"14 Erros de NF em Maio — Aumentou vs Abril (9 → 14) · R$ 1.086,34",loja:"Carrossel · Matriz · CRV",lc:"#D97706",
+     desc:"Erros de NF pioraram de 9 para 14. Kit Cicatricure (Matriz, −5un, R$137,45), Paleta Minne Mouse Rose (Carrossel, +2un, R$161,58), AMIORON 200MG (Carrossel, +6un, R$93,60). Aumento de erros NF enquanto outros tipos caem = deterioração no processo de recebimento.",
+     m:[{i:"🧾",l:"Erros NF",v:"14 (+5 vs Abril)"},{i:"💰",l:"Impacto",v:"R$ 1.086,34"},{i:"📈",l:"Tendência",v:"Piorando"}],
+     a:"Conferência dupla imediata na entrada de NF em Carrossel e Matriz. Checklist de recebimento com foto. Treinamento dos responsáveis pelo recebimento."},
+    {cls:"rc-crit",pri:"URGENTE",pc:"rcp-U",titulo:"Permanganato Potássio CRV — +105 Unidades Sistêmicas (Falha Estrutural de Cadastro)",loja:"CRV",lc:"#DC2626",
+     desc:"CRV: +105 unidades no sistema vs físico (R$140,70). Magnitude indica falha de cadastro: provável erro de unidade de medida (caixas vs comprimidos) ou fator de conversão incorreto. O CRV registra 0 faltas e 14 sobras — padrão 100% sobras, consistente com entradas sem conferência física real.",
+     m:[{i:"📦",l:"Excedente",v:"+105 unidades"},{i:"🔍",l:"Causa",v:"Erro cadastro sistêmico"},{i:"🏪",l:"CRV",v:"0 faltas · 14 sobras"}],
+     a:"Investigar: unidade de medida, fator de conversão, duplicatas no cadastro. Contagem física tripla com supervisor. Auditar todos produtos MG/ML nas 6 lojas se confirmar erro de parametrização."},
+    {cls:"rc-alto",pri:"ALTO",pc:"rcp-A",titulo:"Baependi 12,5% e Matriz 23,1% — Menor Progresso de Ajuste da Rede",loja:"Baependi · Matriz",lc:"#D97706",
+     desc:"Baependi: apenas 2 de 16 SKUs ajustados (12,5%). Valda Friends (+30un, R$111,00) é o maior caso não resolvido. Matriz: 5 de 26 (23,1%); 9 itens com falta incluem produtos que dependem de NF externa para regularização. A dependência de processos externos está travando os ajustes.",
+     m:[{i:"📋",l:"Baependi",v:"12,5% · 2 de 16"},{i:"📋",l:"Matriz",v:"23,1% · 5 de 26"},{i:"🔗",l:"Gargalo",v:"NFs externas"}],
+     a:"Baependi: reunião com gerente para mapear gargalo. Matriz: acionar setor fiscal para regularização das NFs em 5 dias úteis."},
+    {cls:"rc-alto",pri:"MÉDIO",pc:"rcp-M",titulo:"Meta de 60% Não Atingida — Real: 27,8%. Junho Exige Dobrar o Ritmo",loja:"Toda a Rede",lc:"#6D28D9",
+     desc:"Meta pós-Abril era 60%. Resultado real: 27,8%. Para 60% em Junho: ajustar ao menos 97 de 162 SKUs — mais que o dobro do ritmo atual de 43 ajustes. Tendência −90% semanal é o sinal positivo mais forte. Cruzília (40%) e CRV (35,7%) mostram que é possível superar a meta.",
+     m:[{i:"🎯",l:"Meta Maio",v:"60% — não atingida"},{i:"📈",l:"Real",v:"27,8% (+24pp)"},{i:"⭐",l:"Referência",v:"Cruzília 40,0%"}],
+     a:"Metas por loja para Junho: Carrossel 40%, Matriz 50%, demais 60%. Ranking semanal com todos os gerentes. Reunião toda sexta com reporte ao gestor."}
+  ]
+};
+
+let _relBuilt = false;
+let _relJunhoBuilt = false;
+
+function buildRelatorio() {
+  if (_relBuilt && month!=='junho') return;
+  // Update cover title
+  const h1=document.getElementById('relH1');
+  const h2=document.getElementById('relH2');
+  const secSub=document.querySelectorAll('.sec-sub-r');
+  if(month==='junho'){
+    if(h1) h1.innerHTML='Resultado de Junho 2026<br>+ Trajetória da Rede';
+    if(h2) h2.textContent='Rede de Farmácias · 6 Lojas · Junho 2026 · Dados Reais · Confidencial';
+  } else if(month==='abril'){
+    if(h1) h1.innerHTML='Análise Comparativa<br>Abril 2026 — Diagnóstico';
+    if(h2) h2.textContent='Rede de Farmácias · Abril 2026 · Colapso sistêmico · Confidencial';
+  } else {
+    if(h1) h1.innerHTML='Análise Comparativa<br>Abril → Maio 2026';
+    if(h2) h2.textContent='Rede de Farmácias · 6 Lojas · Diagnóstico operacional completo · Confidencial';
+  }
+  if (month==='junho' && _relJunhoBuilt) return;
+  if (month==='junho') _relJunhoBuilt=true; else _relBuilt = true;
+  // Use current month data
+  const REL_DATA = D;
+  const pCol = p => p>=50?'#059669':p>=30?'#D97706':'#DC2626';
+  const fmt  = (v,d=2)=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+  // Loja cards
+  document.getElementById('relLojaGrid').innerHTML = REL.lojas.map(l=>{
+    const pc=pCol(l.pct);
+    const stCls=l.pct>=35?'rs-ok':l.pct>=20?'rs-warn':'rs-crit';
+    const stLbl=l.pct>=35?'✅ Regular':l.pct>=20?'⚠️ Atenção':'🔴 Crítico';
+    return `<div class="rlc" style="border-top-color:${l.cor}">
+      <div class="rlc-name" style="color:${l.cor}">${l.n}</div>
+      <div class="rlc-kpis">
+        <div class="rlk"><div class="rlk-v">${l.skus}</div><div class="rlk-l">SKUs</div></div>
+        <div class="rlk"><div class="rlk-v" style="color:#DC2626">${l.div}</div><div class="rlk-l">Diverg.</div></div>
+        <div class="rlk"><div class="rlk-v" style="color:#059669">${l.ajust}</div><div class="rlk-l">Ajust.</div></div>
+        <div class="rlk"><div class="rlk-v" style="color:#DC2626">${l.f}</div><div class="rlk-l">Faltas</div></div>
+        <div class="rlk"><div class="rlk-v" style="color:#1A3260">${l.sob}</div><div class="rlk-l">Sobras</div></div>
+        <div class="rlk"><div class="rlk-v" style="font-size:14px">R$${fmt(l.imp,0)}</div><div class="rlk-l">Impacto</div></div>
+      </div>
+      <div class="rlc-bar-wrap">
+        <div class="rlb-row"><span class="rlb-pct" style="color:${pc}">${l.pct}% ajustado</span><span class="rlb-lbl">${l.ajust+l.ok} de ${l.skus}</span></div>
+        <div class="rlb-track"><div class="rlb-fill" style="width:${l.pct}%;background:${pc}"></div></div>
+      </div>
+      <span class="rlc-st ${stCls}">${stLbl}</span>
+    </div>`;
+  }).join('');
+
+  // Bar chart
+  const maxI=Math.max(...REL.lojas.map(l=>l.imp));
+  document.getElementById('relBarChart').innerHTML=REL.lojas.map(l=>{
+    const bw=(l.imp/maxI*100).toFixed(1); const pc=pCol(l.pct);
+    return `<div class="rl-hbar-row">
+      <div class="rl-hbar-nm">${l.n}</div>
+      <div class="rl-hbar-track"><div class="rl-hbar-fill" style="width:${bw}%;background:${l.cor}"><span>R$${fmt(l.imp,0)}</span></div></div>
+      <div class="rl-hbar-badge" style="background:${pc}">${l.pct}%</div>
+    </div>`;
+  }).join('');
+
+  // SKU table
+  const stMap={Divergente:'rl-st-D',Ajustado:'rl-st-A',Ok:'rl-st-O'};
+  document.getElementById('relSkuBody').innerHTML=REL.top15.map((s,i)=>{
+    const lc=REL.lojas.find(l=>l.n===s.loja)?.cor||'#DC2626';
+    const sc=stMap[s.status]||'rl-st-D';
+    const dStr=(s.dif>0?'+':'')+s.dif;
+    return `<tr>
+      <td><div class="rl-rank" style="background:${lc}">${i+1}</div></td>
+      <td style="font-weight:600;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px" title="${s.sku}">${s.sku}</td>
+      <td><span style="font-size:11px;font-weight:700;color:${lc}">${s.loja}</span></td>
+      <td class="tc">${s.fis}</td><td class="tc">${s.sis}</td>
+      <td class="tc ${s.dif<0?'dif-n':'dif-p'}">${dStr}</td>
+      <td class="tr" style="color:#64748B">R$${fmt(s.unit)}</td>
+      <td class="tr" style="font-weight:800;color:${lc}">R$${fmt(s.imp)}</td>
+      <td style="font-size:11px;color:#475569;white-space:nowrap">${s.tipo}</td>
+      <td class="tc"><span class="${sc}">${s.status}</span></td>
+      <td class="tc" style="font-size:11px;color:#94A3B8">${s.sem}</td>
+    </tr>`;
+  }).join('');
+
+  // Causas raiz
+  document.getElementById('relCausasContent').innerHTML=REL.causas.map((c,i)=>`
+    <div class="rel-causa ${c.cls}" style="animation-delay:${i*.06}s">
+      <div class="rc-hdr">
+        <div style="display:flex;align-items:flex-start;gap:9px;flex:1;min-width:0">
+          <span class="rc-pri ${c.pb||c.pc||'rcp-M'}">${c.pri}</span>
+          <div class="rc-title">${c.titulo}</div>
+        </div>
+        <div class="rc-loja" style="background:${c.lcor||c.lc}">${c.loja}</div>
+      </div>
+      <div class="rc-desc">${c.desc}</div>
+      <div class="rc-metrics">${(c.imps||c.m||[]).map(m=>`<div class="rc-m"><span>${m.i}</span><span style="color:var(--txt3)">${m.l}:</span><span style="font-weight:700"> ${m.v}</span></div>`).join('')}</div>
+      <div class="rc-acao"><div class="rc-acao-lbl">✅ Ação Recomendada</div><div class="rc-acao-txt">${c.acao||c.a||''}</div></div>
+    </div>`).join('');
+
+  // Charts
+  setTimeout(()=>{
+    new Chart(document.getElementById('relLineChart'),{
+      type:'line',
+      data:{labels:REL.sems.labels,datasets:[
+        {label:'Divergências',data:REL.sems.divs,borderColor:'#DC2626',backgroundColor:'rgba(220,38,38,.07)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#DC2626',borderWidth:2.5},
+        {label:'Ajustados',data:REL.sems.ajust,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.07)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#059669',borderWidth:2.5,borderDash:[5,3]},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{font:{size:10},color:'#94A3B8'},grid:{color:'#F1F5FB'},border:{display:false}},y:{ticks:{font:{size:10},color:'#94A3B8'},grid:{color:'#F1F5FB'},border:{display:false},beginAtZero:true}},plugins:{legend:{display:true,position:'bottom',labels:{font:{size:10},color:'#64748B',boxWidth:12,boxHeight:3,usePointStyle:true,pointStyle:'rect'}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw}}}}
+    });
+    new Chart(document.getElementById('relSemChart'),{
+      type:'bar',
+      data:{labels:REL.sems.labels,datasets:[{label:'Impacto R$',data:REL.sems.imps,backgroundColor:['#DC2626','#D97706','#059669','#059669'],borderRadius:5}]},
+      options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{display:false},ticks:{font:{size:10},color:'#94A3B8'}},y:{grid:{color:'#F1F5FB'},ticks:{font:{size:10},color:'#94A3B8',callback:v=>'R$'+v.toLocaleString('pt-BR')},border:{display:false}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'R$ '+c.raw.toLocaleString('pt-BR')}}}}
+    });
+  },120);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════
+buildBanner();
+buildTicker();
+buildKPIs();
+buildBars();
+buildDonut();
+buildPlacar();
+buildPills();
+buildTop5();
+setTimeout(()=>buildLine(),80);
+setInterval(()=>{document.getElementById('ftTime').textContent=new Date().toLocaleTimeString('pt-BR');},1000);
+window._li=setInterval(()=>liveRefresh(),15000);
+document.getElementById('lupdate').textContent='Dados: '+D.meta.gerado;
+document.getElementById('ftTime').textContent=new Date().toLocaleTimeString('pt-BR');
+</script></body>
+</html>
